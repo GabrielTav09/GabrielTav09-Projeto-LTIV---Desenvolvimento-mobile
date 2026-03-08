@@ -9,3 +9,21 @@ Comit antes de subir o arquivo no git
 
 Upar o reositorio no github
 -- git push
+
+PARA BAIXAR O REPOSITORIO EM OUTRO COMPUTADOR E TRABALHAR LÁ:
+
+// 1. Instale o básico no novo PC
+Antes de baixar o código, o novo computador precisa ter as ferramentas necessárias instaladas:
+
+Node.js: Baixe a versão LTS (Long Term Support) no site oficial node.js.
+Git: Instale o Git para Windows git-scm.com.
+VS Code: Para editar o código.
+
+EM SEGUIDA RODAR NO TERMINAL DO VSCODE: 
+-- git clone https://github.com/GabrielTav09/GabrielTav09-Projeto-LTIV---Desenvolvimento-mobile.git
+-- cd GabrielTav09-Projeto-LTIV---Desenvolvimento-mobile 
+-- npm install // INSTALAR OS PACOTES E BIBIOTECAS
+-- npx expo start // PARA RODAR O EXPO
+
+CASO O VS CODE N PEÇA O LOGIN
+git config --global credential.helper manager
