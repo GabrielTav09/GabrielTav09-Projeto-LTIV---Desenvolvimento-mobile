@@ -1,0 +1,11 @@
+Seleconar todos os arquivos par alançar no repositorio github
+-- git add .
+
+Selecionar apenas alguim para subir par ao git
+-- git add App.tsx
+
+Comit antes de subir o arquivo no git
+-- git commit -m "TEXTO"
+
+Upar o reositorio no github
+-- git push
