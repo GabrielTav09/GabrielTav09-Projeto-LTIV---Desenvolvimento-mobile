@@ -1,16 +1,18 @@
-Seleconar todos os arquivos par alançar no repositorio github
+-------> Seleconar todos os arquivos par alançar no repositorio github
 -- git add .
 
-Selecionar apenas alguim para subir par ao git
+-------> Selecionar apenas alguim para subir par ao git
 -- git add App.tsx
 
-Comit antes de subir o arquivo no git
+-------> Comit antes de subir o arquivo no git
 -- git commit -m "TEXTO"
 
-Upar o reositorio no github
+-------> Upar o reositorio no github
 -- git push
 
-PARA BAIXAR O REPOSITORIO EM OUTRO COMPUTADOR E TRABALHAR LÁ:
+----------------------------------------------------------------------------------------------------------------
+
+-------> PARA BAIXAR O REPOSITORIO EM OUTRO COMPUTADOR E TRABALHAR LÁ:
 
 // 1. Instale o básico no novo PC
 Antes de baixar o código, o novo computador precisa ter as ferramentas necessárias instaladas:
@@ -25,5 +27,30 @@ EM SEGUIDA RODAR NO TERMINAL DO VSCODE:
 -- npm install // INSTALAR OS PACOTES E BIBIOTECAS
 -- npx expo start // PARA RODAR O EXPO
 
-CASO O VS CODE N PEÇA O LOGIN
+-------> CASO O VS CODE N PEÇA O LOGIN
 git config --global credential.helper manager
+
+-------> COMO REMOVER O LOGIN DO GIT
+
+O Windows salva sua senha do GitHub em um cofre interno. Para apagar:
+
+No menu Iniciar, pesquise por Gerenciador de Credenciais.
+
+Clique em Credenciais do Windows.
+
+Procure na lista por qualquer item que comece com git:https://github.com.
+
+Clique na seta ao lado e depois em Remover.
+2. Deslogar do VS Code
+Mesmo limpando o Windows, o VS Code pode manter uma sessão ativa no editor:
+
+No canto inferior esquerdo do VS Code, clique no ícone de Contas (o desenho de uma pessoa).
+
+Se o seu nome de usuário do GitHub aparecer ali, clique em Sair (Sign Out).
+
+3. Limpar as Configurações Globais do Git
+O Git costuma salvar seu nome e e-mail para os commits. Para limpar isso no terminal do computador alheio, digite:
+
+Bash
+git config --global --unset-all user.name
+git config --global --unset-all user.email
