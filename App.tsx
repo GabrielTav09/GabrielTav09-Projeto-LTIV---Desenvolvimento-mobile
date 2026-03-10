@@ -1,21 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
-  // Estados para armazenar os dados coletados
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  const handleLogin = () => {
-    // Aqui simulamos o armazenamento/validação dos dados
+  const handleLogin = async () => {
     if (email === '' || senha === '') {
-      Alert.alert("Erro", "Por favor, preencha todos os campos.");
-    } else {
-      Alert.alert("Sucesso", `Dados armazenados!\nEmail: ${email}\nSenha: ${senha}`);
-      console.log("Email coletado:", email);
-      console.log("Senha coletada:", senha);
+      Alert.alert("Erro", "Preencha todos os campos.");
+      return;
     }
+
+    try {
+      // 1. Tenta buscar um usuário já salvo no "celular"
+      const storedData = await AsyncStorage.getItem('@usuario_logado');
+      
+      if (storedData === null) {
+        // Se não existe ninguém, vamos CADASTRAR este primeiro
+        const novoUsuario = JSON.stringify({ email, senha });
+        await AsyncStorage.setItem('@usuario_logado', novoUsuario);
+        Alert.alert("Sucesso", "Primeiro acesso! Usuário cadastrado com sucesso.");
+      } else {
+        // Se já existe, vamos COMPARAR
+        const usuarioValido = JSON.parse(storedData);
+
+        if (email === usuarioValido.email && senha === usuarioValido.senha) {
+          Alert.alert("Bem-vindo!", "Login realizado com sucesso!");
+        } else {
+          Alert.alert("Erro", "E-mail ou senha incorretos.");
+        }
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha ao acessar o armazenamento.");
+    }
+  };
+
+  // Função para limpar os dados (útil para testes)
+  const limparDados = async () => {
+    await AsyncStorage.removeItem('@usuario_logado');
+    Alert.alert("Limpo", "Cadastro removido para novos testes.");
   };
 
   return (
@@ -23,17 +48,16 @@ export default function App() {
       <StatusBar style="light" />
       
       <View style={styles.card}>
-        <Text style={styles.title}>Bem-vindo</Text>
-        <Text style={styles.subtitle}>Faça login para continuar</Text>
+        <Text style={styles.title}>Meu App</Text>
+        <Text style={styles.subtitle}>Digite seus dados para entrar</Text>
 
         <TextInput 
           style={styles.input}
           placeholder="E-mail"
           placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
           value={email}
           onChangeText={setEmail}
+          autoCapitalize="none"
         />
 
         <TextInput 
@@ -46,11 +70,11 @@ export default function App() {
         />
 
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Entrar</Text>
+          <Text style={styles.buttonText}>Entrar / Cadastrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity>
-          <Text style={styles.forgotText}>Esqueceu a senha?</Text>
+        <TouchableOpacity onPress={limparDados} style={{marginTop: 20}}>
+          <Text style={{color: '#666'}}>Resetar Cadastro (Teste)</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -60,61 +84,50 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212', // Um fundo escuro moderno
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   card: {
     width: '100%',
-    backgroundColor: '#1e1e1e',
+    backgroundColor: '#f8f5fd',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
     elevation: 5,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#c6b6ff',
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 16,
-    color: '#aaa',
+    color: '#4d4d4d',
     marginBottom: 30,
   },
   input: {
     width: '100%',
     height: 50,
-    backgroundColor: '#2c2c2c',
+    backgroundColor: '#e5e5fa',
     borderRadius: 10,
     paddingHorizontal: 15,
     color: '#fff',
     marginBottom: 15,
-    fontSize: 16,
   },
   button: {
     width: '100%',
     height: 50,
-    backgroundColor: '#b12525', // Usei o tom de vermelho que você testou antes
+    backgroundColor: '#6d59db', // Cor que você usou nos testes anteriores
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 10,
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  forgotText: {
-    color: '#aaa',
-    marginTop: 20,
-    fontSize: 14,
   }
 });
