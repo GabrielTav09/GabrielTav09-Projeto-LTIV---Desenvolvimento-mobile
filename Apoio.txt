@@ -8,7 +8,7 @@
 -- git commit -m "TEXTO"
 
 -------> Upar o reositorio no github
--- git push
+-- 
 
 ----------------------------------------------------------------------------------------------------------------
 
@@ -54,3 +54,9 @@ O Git costuma salvar seu nome e e-mail para os commits. Para limpar isso no term
 Bash
 git config --global --unset-all user.name
 git config --global --unset-all user.email
+
+-------> Abrir o EXPO
+No painel:
+    cd caminho\da\sua\pasta
+depois
+    npx expo start
