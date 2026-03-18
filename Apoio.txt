@@ -20,12 +20,17 @@ Antes de baixar o código, o novo computador precisa ter as ferramentas necessá
 Node.js: Baixe a versão LTS (Long Term Support) no site oficial node.js.
 Git: Instale o Git para Windows git-scm.com.
 VS Code: Para editar o código.
+npx expo install react-native-calendars
 
 EM SEGUIDA RODAR NO TERMINAL DO VSCODE: 
 -- git clone https://github.com/GabrielTav09/GabrielTav09-Projeto-LTIV---Desenvolvimento-mobile.git
 -- cd GabrielTav09-Projeto-LTIV---Desenvolvimento-mobile 
 -- npm install // INSTALAR OS PACOTES E BIBIOTECAS
+
+DENTRO DA PASTA DO PROJETO
 -- npx expo start // PARA RODAR O EXPO
+-- npx expo install @react-navigation/native @react-navigation/stack react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-calendars
+
 
 -------> CASO O VS CODE N PEÇA O LOGIN
 git config --global credential.helper manager
