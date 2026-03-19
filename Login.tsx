@@ -6,7 +6,7 @@ export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
 
-  // FUNÇÃO ORIGINAL (Login / Cadastro)
+  // FUNÇÃO DE LOGIN E CADASTRO AUTOMÁTICO
   const handleLogin = async () => {
     if (email === '' || senha === '') {
       Alert.alert("Erro", "Preencha todos os campos.");
@@ -17,16 +17,23 @@ export default function LoginScreen({ navigation }: any) {
       const storedData = await AsyncStorage.getItem('@usuario_logado');
       
       if (storedData === null) {
-        // CADASTRAR novo usuário
+        // --- FLUXO DE CADASTRO ---
         const novoUsuario = JSON.stringify({ email, senha });
         await AsyncStorage.setItem('@usuario_logado', novoUsuario);
-        Alert.alert("Sucesso", "Usuário cadastrado com sucesso! Use os dados para entrar.");
+        
+        Alert.alert("Sucesso", "Usuário cadastrado com sucesso!", [
+          { 
+            text: "Entrar no App", 
+            onPress: () => navigation.replace('Home') // Navega após o cadastro
+          }
+        ]);
       } else {
-        // Tentar LOGIN comparando com dados salvos
+        // --- FLUXO DE LOGIN ---
         const usuarioValido = JSON.parse(storedData);
+        
         if (email === usuarioValido.email && senha === usuarioValido.senha) {
-          Alert.alert("Bem-vindo!", "Login realizado com sucesso!");
-          // navigation.replace('Home'); // Descomente esta linha quando tiver a navegação pronta
+          // Se os dados estão corretos, entra direto
+          navigation.replace('Home'); 
         } else {
           Alert.alert("Erro", "E-mail ou senha incorretos.");
         }
@@ -36,7 +43,7 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // NOVA FUNÇÃO (Resetar a senha gravada no celular)
+  // FUNÇÃO PARA RESETAR OS DADOS (Esqueci a senha)
   const handleForgotPassword = () => {
     Alert.alert(
       "Esqueceu a Senha?",
@@ -47,12 +54,10 @@ export default function LoginScreen({ navigation }: any) {
           text: "Sim, Resetar", 
           onPress: async () => {
             try {
-              // Apaga a chave do armazenamento local
               await AsyncStorage.removeItem('@usuario_logado');
-              // Limpa os campos da tela
               setEmail('');
               setSenha('');
-              Alert.alert("Sucesso", "O armazenamento foi limpo. Digite um novo e-mail e senha para se cadastrar.");
+              Alert.alert("Sucesso", "Memória limpa! Crie um novo acesso.");
             } catch (e) {
               Alert.alert("Erro", "Falha ao limpar os dados.");
             }
@@ -85,16 +90,13 @@ export default function LoginScreen({ navigation }: any) {
           onChangeText={setSenha} 
         />
         
-        {/* BOTÃO PRINCIPAL */}
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Entrar / Cadastrar</Text>
         </TouchableOpacity>
 
-        {/* NOVO BOTÃO DE ESQUECI SENHA (Reset) */}
         <TouchableOpacity style={styles.forgotButton} onPress={handleForgotPassword}>
           <Text style={styles.forgotButtonText}>Esqueceu a senha? (Resetar App)</Text>
         </TouchableOpacity>
-
       </View>
     </View>
   );
@@ -145,15 +147,14 @@ const styles = StyleSheet.create({
     fontSize: 18, 
     fontWeight: 'bold' 
   },
-  // ESTILOS DO NOVO BOTÃO
   forgotButton: {
     marginTop: 20,
     padding: 10
   },
   forgotButtonText: {
-    color: '#6d59db', // Cor principal do tema
+    color: '#6d59db',
     fontSize: 14,
     fontWeight: '500',
-    textDecorationLine: 'underline' // Sublinhado para parecer link
+    textDecorationLine: 'underline'
   }
 });
