@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Interface para garantir a estrutura correta dos dados [cite: 6]
+// Interface para garantir a estrutura correta dos dados
 interface Tarefa {
   id: string;
   title: string;
@@ -12,19 +12,17 @@ interface Tarefa {
   status: 'pendente' | 'concluída';
 }
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: any) {
   const [selectedDate, setSelectedDate] = useState('');
   const [tasks, setTasks] = useState<Record<string, Tarefa[]>>({});
   const [modalVisible, setModalVisible] = useState(false);
   
-  // Estados dos inputs [cite: 7, 8, 10]
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [time, setTime] = useState('');
 
   useEffect(() => { loadTasks(); }, []);
 
-  // Recupera dados automaticamente ao abrir [cite: 31]
   const loadTasks = async () => {
     try {
       const data = await AsyncStorage.getItem('@tasks');
@@ -34,7 +32,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Salva as tarefas para persistência [cite: 30]
   const saveTasksToStorage = async (newTasks: Record<string, Tarefa[]>) => {
     try {
       setTasks(newTasks);
@@ -42,6 +39,14 @@ export default function HomeScreen() {
     } catch (e) {
       Alert.alert("Erro", "Falha ao salvar dados.");
     }
+  };
+
+  // Função para deslogar do App
+  const handleLogout = () => {
+    Alert.alert("Sair", "Deseja retornar à tela de login?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sair", onPress: () => navigation.replace('Login') }
+    ]);
   };
 
   const addTask = async () => {
@@ -66,7 +71,6 @@ export default function HomeScreen() {
     setTitle(''); setDescription(''); setTime('');
   };
 
-  // Função para excluir tarefa 
   const deleteTask = (id: string) => {
     Alert.alert("Excluir", "Deseja remover esta tarefa?", [
       { text: "Cancelar" },
@@ -81,7 +85,6 @@ export default function HomeScreen() {
     ]);
   };
 
-  // Função para marcar como concluída/pendente 
   const toggleStatus = async (id: string) => {
     const newTasks = { ...tasks };
     newTasks[selectedDate] = newTasks[selectedDate].map(t => {
@@ -93,7 +96,6 @@ export default function HomeScreen() {
     await saveTasksToStorage(newTasks);
   };
 
-  // Destaque visual no calendário 
   const getMarkedDates = () => {
     const marked: any = {};
     Object.keys(tasks).forEach(date => {
@@ -106,10 +108,24 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      {/* Cabeçalho com Botão Sair */}
+      <View style={styles.topBar}>
+        <Text style={styles.topBarTitle}>Minha Agenda</Text>
+        <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+          <Text style={styles.logoutBtnText}>Sair</Text>
+        </TouchableOpacity>
+      </View>
+
       <Calendar 
         onDayPress={(day: any) => setSelectedDate(day.dateString)}
         markedDates={getMarkedDates()}
+        theme={{
+          selectedDayBackgroundColor: '#6d59db',
+          todayTextColor: '#6d59db',
+          dotColor: '#6d59db',
+          arrowColor: '#6d59db',
+        }}
       />
       
       <View style={styles.headerLista}>
@@ -119,6 +135,7 @@ export default function HomeScreen() {
       <FlatList
         data={tasks[selectedDate] || []}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }: { item: Tarefa }) => (
           <View style={[styles.taskCard, item.status === 'concluída' && styles.taskDone]}>
             <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleStatus(item.id)}>
@@ -130,7 +147,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity onPress={() => deleteTask(item.id)} style={styles.deleteBtn}>
-              <Text style={{ color: 'red', fontWeight: 'bold' }}>Sair</Text>
+              <Text style={{ color: '#d32f2f', fontWeight: 'bold' }}>Excluir</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -148,39 +165,53 @@ export default function HomeScreen() {
             <TextInput placeholder="Título *" style={styles.input} value={title} onChangeText={setTitle} />
             <TextInput placeholder="Horário (opcional)" style={styles.input} value={time} onChangeText={setTime} />
             <TextInput placeholder="Descrição" style={[styles.input, { height: 60 }]} multiline value={description} onChangeText={setDescription} />
+            
             <TouchableOpacity style={styles.saveButton} onPress={addTask}>
-              <Text style={styles.buttonText}>Salvar</Text>
+              <Text style={styles.buttonText}>Salvar Tarefa</Text>
             </TouchableOpacity>
+            
             <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 15 }}>
               <Text style={{ color: '#666' }}>Cancelar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
+  topBar: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingHorizontal: 20, 
+    paddingVertical: 15, 
+    backgroundColor: '#fff' 
+  },
+  topBarTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+  logoutBtn: { padding: 8, backgroundColor: '#f0f0f0', borderRadius: 8 },
+  logoutBtnText: { color: '#666', fontWeight: '600' },
   headerLista: { padding: 15, backgroundColor: '#f8f5fd', borderBottomWidth: 1, borderColor: '#eee' },
   dateTitle: { fontSize: 16, fontWeight: 'bold', color: '#6d59db' },
   taskCard: { 
-    padding: 15, backgroundColor: '#fff', marginHorizontal: 10, marginVertical: 5, 
-    borderRadius: 12, flexDirection: 'row', alignItems: 'center', elevation: 2 
+    padding: 15, backgroundColor: '#fff', marginHorizontal: 15, marginVertical: 6, 
+    borderRadius: 15, flexDirection: 'row', alignItems: 'center', 
+    elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
   },
-  taskDone: { backgroundColor: '#f0f0f0', opacity: 0.7 },
-  taskTitle: { fontSize: 17, fontWeight: 'bold', color: '#333' },
+  taskDone: { backgroundColor: '#f9f9f9', opacity: 0.6 },
+  taskTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   textDone: { textDecorationLine: 'line-through', color: '#888' },
-  taskInfo: { fontSize: 13, color: '#666', marginTop: 2 },
-  deleteBtn: { padding: 10 },
-  emptyText: { textAlign: 'center', marginTop: 30, color: '#999' },
-  fab: { position: 'absolute', right: 20, bottom: 20, width: 60, height: 60, backgroundColor: '#6d59db', borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-  fabText: { color: '#fff', fontSize: 30 },
+  taskInfo: { fontSize: 12, color: '#777', marginTop: 3 },
+  deleteBtn: { padding: 10, marginLeft: 10 },
+  emptyText: { textAlign: 'center', marginTop: 40, color: '#bbb', fontSize: 14 },
+  fab: { position: 'absolute', right: 25, bottom: 25, width: 64, height: 64, backgroundColor: '#6d59db', borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+  fabText: { color: '#fff', fontSize: 32, fontWeight: '300' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 25, alignItems: 'center' },
-  modalHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
-  input: { backgroundColor: '#f5f5f5', width: '100%', padding: 12, borderRadius: 10, marginBottom: 10 },
-  saveButton: { backgroundColor: '#6d59db', padding: 15, borderRadius: 10, width: '100%', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '90%', borderRadius: 25, padding: 25, alignItems: 'center' },
+  modalHeader: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: '#333' },
+  input: { backgroundColor: '#f5f5f5', width: '100%', padding: 15, borderRadius: 12, marginBottom: 12 },
+  saveButton: { backgroundColor: '#6d59db', padding: 16, borderRadius: 12, width: '100%', alignItems: 'center', marginTop: 10 },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
 });
