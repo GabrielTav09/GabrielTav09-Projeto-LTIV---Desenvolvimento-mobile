@@ -10,6 +10,8 @@
 -------> Upar o reositorio no github
 -- git push
 
+Limpar o cache
+-- npx expo start -c
 ----------------------------------------------------------------------------------------------------------------
 
 -------> PARA BAIXAR O REPOSITORIO EM OUTRO COMPUTADOR E TRABALHAR LÁ:
@@ -30,7 +32,11 @@ EM SEGUIDA RODAR NO TERMINAL DO VSCODE:
 DENTRO DA PASTA DO PROJETO
 -- npx expo start // PARA RODAR O EXPO
 -- npx expo install @react-navigation/native @react-navigation/stack react-native-screens react-native-safe-area-context react-native-gesture-handler react-native-calendars
+-- npx expo install @react-navigation/native @react-navigation/stack
+-- npx expo install react-native-screens react-native-safe-area-context
 
+-- Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+-- npx expo install @react-navigation/native @react-navigation/stack react-native-screens react-native-safe-area-context react-native-gesture-handler
 
 -------> CASO O VS CODE N PEÇA O LOGIN
 git config --global credential.helper manager

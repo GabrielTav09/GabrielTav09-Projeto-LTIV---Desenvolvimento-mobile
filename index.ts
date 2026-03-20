@@ -1,8 +1,6 @@
 import { registerRootComponent } from 'expo';
+import App from './App'; // Agora ele importa o App.tsx (o mapa de rotas)
 
-import App from './Login';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
+// O registerRootComponent agora vai carregar o NavigationContainer 
+// que você configurou no App.tsx, permitindo que o 'navigation' funcione.
 registerRootComponent(App);
