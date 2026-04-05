@@ -1,9 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, TextInput, Alert, SafeAreaView } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Interface para garantir a estrutura correta dos dados
+// Configuração da tradução para Português
+LocaleConfig.locales['pt-br'] = {
+  monthNames: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+  monthNamesShort: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+  dayNames: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+  dayNamesShort: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-br';
+
 interface Tarefa {
   id: string;
   title: string;
@@ -20,6 +29,9 @@ export default function HomeScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [time, setTime] = useState('');
+
+  // Pega a data de hoje no formato YYYY-MM-DD para o destaque sutil
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => { loadTasks(); }, []);
 
@@ -41,7 +53,6 @@ export default function HomeScreen({ navigation }: any) {
     }
   };
 
-  // Função para deslogar do App
   const handleLogout = () => {
     Alert.alert("Sair", "Deseja retornar à tela de login?", [
       { text: "Cancelar", style: "cancel" },
@@ -54,10 +65,8 @@ export default function HomeScreen({ navigation }: any) {
       Alert.alert("Erro", "Selecione uma data e digite um título.");
       return;
     }
-
     const newTasks = { ...tasks };
     if (!newTasks[selectedDate]) newTasks[selectedDate] = [];
-    
     newTasks[selectedDate].push({ 
       id: Date.now().toString(), 
       title, 
@@ -65,7 +74,6 @@ export default function HomeScreen({ navigation }: any) {
       time,
       status: 'pendente' 
     });
-
     await saveTasksToStorage(newTasks);
     setModalVisible(false);
     setTitle(''); setDescription(''); setTime('');
@@ -74,9 +82,7 @@ export default function HomeScreen({ navigation }: any) {
   const deleteTask = (id: string) => {
     Alert.alert("Excluir", "Deseja remover esta tarefa?", [
       { text: "Cancelar" },
-      { 
-        text: "Excluir", 
-        onPress: async () => {
+      { text: "Excluir", onPress: async () => {
           const newTasks = { ...tasks };
           newTasks[selectedDate] = newTasks[selectedDate].filter(t => t.id !== id);
           await saveTasksToStorage(newTasks);
@@ -98,18 +104,44 @@ export default function HomeScreen({ navigation }: any) {
 
   const getMarkedDates = () => {
     const marked: any = {};
+
+    // 1. Marca os dias que possuem tarefas (pontinho roxo)
     Object.keys(tasks).forEach(date => {
       if (tasks[date].length > 0) {
         marked[date] = { marked: true, dotColor: '#6d59db' };
       }
     });
-    marked[selectedDate] = { ...marked[selectedDate], selected: true, selectedColor: '#6d59db' };
+
+    // 2. Destaque Sutil para o dia de HOJE (Círculo vazado)
+    marked[today] = {
+      ...marked[today],
+      customStyles: {
+        container: {
+          borderWidth: 1,
+          borderColor: '#6d59db',
+          borderRadius: 20,
+        },
+        text: {
+          color: '#6d59db',
+          fontWeight: 'bold',
+        }
+      }
+    };
+
+    // 3. Destaque para o dia SELECIONADO (Fundo preenchido)
+    if (selectedDate) {
+      marked[selectedDate] = {
+        ...marked[selectedDate],
+        selected: true,
+        selectedColor: '#6d59db',
+      };
+    }
+
     return marked;
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Cabeçalho com Botão Sair */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Minha Agenda</Text>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
@@ -120,11 +152,14 @@ export default function HomeScreen({ navigation }: any) {
       <Calendar 
         onDayPress={(day: any) => setSelectedDate(day.dateString)}
         markedDates={getMarkedDates()}
+        markingType={'custom'} // Necessário para o destaque de hoje funcionar
         theme={{
           selectedDayBackgroundColor: '#6d59db',
           todayTextColor: '#6d59db',
           dotColor: '#6d59db',
           arrowColor: '#6d59db',
+          monthTextColor: '#333',
+          textMonthFontWeight: 'bold',
         }}
       />
       
@@ -164,7 +199,7 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.modalHeader}>Nova Tarefa</Text>
             <TextInput placeholder="Título *" style={styles.input} value={title} onChangeText={setTitle} />
             <TextInput placeholder="Horário (opcional)" style={styles.input} value={time} onChangeText={setTime} />
-            <TextInput placeholder="Descrição" style={[styles.input, { height: 60 }]} multiline value={description} onChangeText={setDescription} />
+            <TextInput placeholder="Descrição (opcional)" style={[styles.input, { height: 60 }]} multiline value={description} onChangeText={setDescription} />
             
             <TouchableOpacity style={styles.saveButton} onPress={addTask}>
               <Text style={styles.buttonText}>Salvar Tarefa</Text>
@@ -180,26 +215,16 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
+// ... (seus styles permanecem os mesmos abaixo)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  topBar: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    paddingHorizontal: 20, 
-    paddingVertical: 15, 
-    backgroundColor: '#fff' 
-  },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff' },
   topBarTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   logoutBtn: { padding: 8, backgroundColor: '#f0f0f0', borderRadius: 8 },
   logoutBtnText: { color: '#666', fontWeight: '600' },
   headerLista: { padding: 15, backgroundColor: '#f8f5fd', borderBottomWidth: 1, borderColor: '#eee' },
   dateTitle: { fontSize: 16, fontWeight: 'bold', color: '#6d59db' },
-  taskCard: { 
-    padding: 15, backgroundColor: '#fff', marginHorizontal: 15, marginVertical: 6, 
-    borderRadius: 15, flexDirection: 'row', alignItems: 'center', 
-    elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4
-  },
+  taskCard: { padding: 15, backgroundColor: '#fff', marginHorizontal: 15, marginVertical: 6, borderRadius: 15, flexDirection: 'row', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
   taskDone: { backgroundColor: '#f9f9f9', opacity: 0.6 },
   taskTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   textDone: { textDecorationLine: 'line-through', color: '#888' },
