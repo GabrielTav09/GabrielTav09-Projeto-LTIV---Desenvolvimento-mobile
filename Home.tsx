@@ -29,11 +29,14 @@ export default function HomeScreen({ navigation }: any) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [time, setTime] = useState('');
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  // Pega a data de hoje no formato YYYY-MM-DD para o destaque sutil
   const today = new Date().toISOString().split('T')[0];
 
-  useEffect(() => { loadTasks(); }, []);
+  useEffect(() => { 
+    loadTasks(); 
+    setSelectedDate(today); // Inicia com a data de hoje selecionada
+  }, []);
 
   const loadTasks = async () => {
     try {
@@ -60,22 +63,44 @@ export default function HomeScreen({ navigation }: any) {
     ]);
   };
 
-  const addTask = async () => {
+  const openAddModal = () => {
+    setEditingTaskId(null);
+    setTitle(''); setDescription(''); setTime('');
+    setModalVisible(true);
+  };
+
+  const openEditModal = (task: Tarefa) => {
+    setEditingTaskId(task.id);
+    setTitle(task.title);
+    setDescription(task.description || '');
+    setTime(task.time || '');
+    setModalVisible(true);
+  };
+
+  const handleSaveTask = async () => {
     if (!selectedDate || !title) {
       Alert.alert("Erro", "Selecione uma data e digite um título.");
       return;
     }
+
     const newTasks = { ...tasks };
     if (!newTasks[selectedDate]) newTasks[selectedDate] = [];
-    newTasks[selectedDate].push({ 
-      id: Date.now().toString(), 
-      title, 
-      description,
-      time,
-      status: 'pendente' 
-    });
+
+    if (editingTaskId) {
+      newTasks[selectedDate] = newTasks[selectedDate].map(t => 
+        t.id === editingTaskId ? { ...t, title, description, time } : t
+      );
+    } else {
+      newTasks[selectedDate].push({ 
+        id: Date.now().toString(), 
+        title, description, time,
+        status: 'pendente' 
+      });
+    }
+
     await saveTasksToStorage(newTasks);
     setModalVisible(false);
+    setEditingTaskId(null);
     setTitle(''); setDescription(''); setTime('');
   };
 
@@ -104,39 +129,13 @@ export default function HomeScreen({ navigation }: any) {
 
   const getMarkedDates = () => {
     const marked: any = {};
-
-    // 1. Marca os dias que possuem tarefas (pontinho roxo)
     Object.keys(tasks).forEach(date => {
       if (tasks[date].length > 0) {
         marked[date] = { marked: true, dotColor: '#6d59db' };
       }
     });
-
-    // 2. Destaque Sutil para o dia de HOJE (Círculo vazado)
-    marked[today] = {
-      ...marked[today],
-      customStyles: {
-        container: {
-          borderWidth: 1,
-          borderColor: '#6d59db',
-          borderRadius: 20,
-        },
-        text: {
-          color: '#6d59db',
-          fontWeight: 'bold',
-        }
-      }
-    };
-
-    // 3. Destaque para o dia SELECIONADO (Fundo preenchido)
-    if (selectedDate) {
-      marked[selectedDate] = {
-        ...marked[selectedDate],
-        selected: true,
-        selectedColor: '#6d59db',
-      };
-    }
-
+    marked[today] = { ...marked[today], customStyles: { container: { borderWidth: 2, borderColor: '#6d59db', borderRadius: 20 }, text: { color: '#6d59db', fontWeight: 'bold' }}};
+    if (selectedDate) { marked[selectedDate] = { ...marked[selectedDate], selected: true, selectedColor: '#6d59db' }; }
     return marked;
   };
 
@@ -152,14 +151,12 @@ export default function HomeScreen({ navigation }: any) {
       <Calendar 
         onDayPress={(day: any) => setSelectedDate(day.dateString)}
         markedDates={getMarkedDates()}
-        markingType={'custom'} // Necessário para o destaque de hoje funcionar
+        markingType={'custom'}
         theme={{
           selectedDayBackgroundColor: '#6d59db',
           todayTextColor: '#6d59db',
           dotColor: '#6d59db',
           arrowColor: '#6d59db',
-          monthTextColor: '#333',
-          textMonthFontWeight: 'bold',
         }}
       />
       
@@ -170,7 +167,6 @@ export default function HomeScreen({ navigation }: any) {
       <FlatList
         data={tasks[selectedDate] || []}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 100 }}
         renderItem={({ item }: { item: Tarefa }) => (
           <View style={[styles.taskCard, item.status === 'concluída' && styles.taskDone]}>
             <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleStatus(item.id)}>
@@ -178,31 +174,37 @@ export default function HomeScreen({ navigation }: any) {
                 {item.status === 'concluída' ? '✅ ' : '⭕ '} {item.title}
               </Text>
               {item.time && <Text style={styles.taskInfo}>⏰ {item.time}</Text>}
-              {item.description && <Text style={styles.taskInfo}>{item.description}</Text>}
             </TouchableOpacity>
             
-            <TouchableOpacity onPress={() => deleteTask(item.id)} style={styles.deleteBtn}>
-              <Text style={{ color: '#d32f2f', fontWeight: 'bold' }}>Excluir</Text>
-            </TouchableOpacity>
+            {/* BOTÕES DE AÇÃO LADO A LADO */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity onPress={() => openEditModal(item)} style={styles.editBtn}>
+                <Text style={styles.editText}>Editar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity onPress={() => deleteTask(item.id)} style={styles.deleteBtn}>
+                <Text style={styles.deleteText}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma tarefa para este dia.</Text>}
       />
 
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.fab} onPress={openAddModal}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Nova Tarefa</Text>
+            <Text style={styles.modalHeader}>{editingTaskId ? 'Editar Tarefa' : 'Nova Tarefa'}</Text>
             <TextInput placeholder="Título *" style={styles.input} value={title} onChangeText={setTitle} />
-            <TextInput placeholder="Horário (opcional)" style={styles.input} value={time} onChangeText={setTime} />
-            <TextInput placeholder="Descrição (opcional)" style={[styles.input, { height: 60 }]} multiline value={description} onChangeText={setDescription} />
+            <TextInput placeholder="Horário" style={styles.input} value={time} onChangeText={setTime} />
+            <TextInput placeholder="Descrição" style={[styles.input, { height: 60 }]} multiline value={description} onChangeText={setDescription} />
             
-            <TouchableOpacity style={styles.saveButton} onPress={addTask}>
-              <Text style={styles.buttonText}>Salvar Tarefa</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}>
+              <Text style={styles.buttonText}>Salvar</Text>
             </TouchableOpacity>
             
             <TouchableOpacity onPress={() => setModalVisible(false)} style={{ marginTop: 15 }}>
@@ -215,28 +217,37 @@ export default function HomeScreen({ navigation }: any) {
   );
 }
 
-// ... (seus styles permanecem os mesmos abaixo)
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 15, backgroundColor: '#fff', paddingTop: 40 },
   topBarTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   logoutBtn: { padding: 8, backgroundColor: '#f0f0f0', borderRadius: 8 },
   logoutBtnText: { color: '#666', fontWeight: '600' },
   headerLista: { padding: 15, backgroundColor: '#f8f5fd', borderBottomWidth: 1, borderColor: '#eee' },
   dateTitle: { fontSize: 16, fontWeight: 'bold', color: '#6d59db' },
-  taskCard: { padding: 15, backgroundColor: '#fff', marginHorizontal: 15, marginVertical: 6, borderRadius: 15, flexDirection: 'row', alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
+  taskCard: { 
+    padding: 15, backgroundColor: '#fff', marginHorizontal: 15, marginVertical: 6, 
+    borderRadius: 15, flexDirection: 'row', alignItems: 'center', elevation: 3 
+  },
   taskDone: { backgroundColor: '#f9f9f9', opacity: 0.6 },
   taskTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
   textDone: { textDecorationLine: 'line-through', color: '#888' },
   taskInfo: { fontSize: 12, color: '#777', marginTop: 3 },
-  deleteBtn: { padding: 10, marginLeft: 10 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#bbb', fontSize: 14 },
-  fab: { position: 'absolute', right: 25, bottom: 25, width: 64, height: 64, backgroundColor: '#6d59db', borderRadius: 32, justifyContent: 'center', alignItems: 'center', elevation: 5 },
-  fabText: { color: '#fff', fontSize: 32, fontWeight: '300' },
+  
+  // ESTILO DOS BOTÕES CORRIGIDO
+  actionButtons: { flexDirection: 'row', alignItems: 'center' },
+  editBtn: { marginRight: 15, padding: 5 },
+  editText: { color: '#6d59db', fontWeight: 'bold' },
+  deleteBtn: { padding: 5 },
+  deleteText: { color: '#d32f2f', fontWeight: 'bold' },
+
+  emptyText: { textAlign: 'center', marginTop: 40, color: '#bbb' },
+  fab: { position: 'absolute', right: 25, bottom: 25, width: 60, height: 60, backgroundColor: '#6d59db', borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5 },
+  fabText: { color: '#fff', fontSize: 30 },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalContent: { backgroundColor: '#fff', width: '90%', borderRadius: 25, padding: 25, alignItems: 'center' },
-  modalHeader: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, color: '#333' },
-  input: { backgroundColor: '#f5f5f5', width: '100%', padding: 15, borderRadius: 12, marginBottom: 12 },
-  saveButton: { backgroundColor: '#6d59db', padding: 16, borderRadius: 12, width: '100%', alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 }
+  modalContent: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 25, alignItems: 'center' },
+  modalHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  input: { backgroundColor: '#f5f5f5', width: '100%', padding: 12, borderRadius: 10, marginBottom: 10 },
+  saveButton: { backgroundColor: '#6d59db', padding: 15, borderRadius: 10, width: '100%', alignItems: 'center' },
+  buttonText: { color: '#fff', fontWeight: 'bold' }
 });
