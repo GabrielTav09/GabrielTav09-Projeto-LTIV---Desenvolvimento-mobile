@@ -3,8 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
 // Importando os arquivos das telas que estão na sua pasta my_list1
-import LoginScreen from './Login'; 
-import HomeScreen from './Home'; 
+import LoginScreen from './Login';
+import HomeScreen from './Home';
 
 // Criando a pilha de navegação
 const Stack = createStackNavigator();
@@ -12,7 +12,18 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
+      <Stack.Navigator 
+        initialRouteName="Login"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#6d59db', // Cor roxa que você escolheu
+          },
+          headerTintColor: '#fff', // Cor do texto do cabeçalho
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
         
         {/* Tela de Login - Sem cabeçalho para o visual ficar limpo */}
         <Stack.Screen 
@@ -21,14 +32,13 @@ export default function App() {
           options={{ headerShown: false }} 
         />
 
-        {/* Tela Principal - Ela já está preparada para receber o navigation.replace */}
+        {/* Tela Principal - Nomeada como 'Home' para o navigation.replace('Home') funcionar */}
         <Stack.Screen 
           name="Home" 
           component={HomeScreen} 
           options={{ 
-            title: 'Minha Lista',
-            headerStyle: { backgroundColor: '#6d59db' },
-            headerTintColor: '#fff',
+            title: 'Task',
+            headerLeft: () => null, // Remove o botão de voltar após o login por segurança
           }} 
         />
 

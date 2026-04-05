@@ -1,160 +1,135 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
+  Alert, 
+  KeyboardAvoidingView, 
+  Platform 
+} from 'react-native';
 
+// O segredo está nas chaves { navigation } para desestruturar a prop
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const [password, setPassword] = useState('');
 
-  // FUNÇÃO DE LOGIN E CADASTRO AUTOMÁTICO
-  const handleLogin = async () => {
-    if (email === '' || senha === '') {
-      Alert.alert("Erro", "Preencha todos os campos.");
+  const handleLogin = () => {
+    // Validação simples para não entrar vazio
+    if (email.trim() === '' || password.trim() === '') {
+      Alert.alert("Aviso", "Por favor, preencha o e-mail e a senha.");
       return;
     }
 
-    try {
-      const storedData = await AsyncStorage.getItem('@usuario_logado');
-      
-      if (storedData === null) {
-        // --- FLUXO DE CADASTRO ---
-        const novoUsuario = JSON.stringify({ email, senha });
-        await AsyncStorage.setItem('@usuario_logado', novoUsuario);
-        
-        Alert.alert("Sucesso", "Usuário cadastrado com sucesso!", [
-          { 
-            text: "Entrar no App", 
-            onPress: () => navigation.replace('Home') // Navega após o cadastro
-          }
-        ]);
-      } else {
-        // --- FLUXO DE LOGIN ---
-        const usuarioValido = JSON.parse(storedData);
-        
-        if (email === usuarioValido.email && senha === usuarioValido.senha) {
-          // Se os dados estão corretos, entra direto
-          navigation.replace('Home'); 
-        } else {
-          Alert.alert("Erro", "E-mail ou senha incorretos.");
-        }
-      }
-    } catch (e) {
-      Alert.alert("Erro", "Falha ao acessar o armazenamento.");
+    // Verifica se o navigation existe antes de chamar o replace
+    if (navigation && navigation.replace) {
+      navigation.replace('Home');
+    } else {
+      Alert.alert("Erro", "O sistema de navegação não foi encontrado.");
     }
   };
 
-  // FUNÇÃO PARA RESETAR OS DADOS (Esqueci a senha)
-  const handleForgotPassword = () => {
-    Alert.alert(
-      "Esqueceu a Senha?",
-      "Deseja limpar todos os dados salvos neste dispositivo? Você precisará criar um novo usuário.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Sim, Resetar", 
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('@usuario_logado');
-              setEmail('');
-              setSenha('');
-              Alert.alert("Sucesso", "Memória limpa! Crie um novo acesso.");
-            } catch (e) {
-              Alert.alert("Erro", "Falha ao limpar os dados.");
-            }
-          } 
-        }
-      ]
-    );
-  };
-
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Meu App</Text>
-        
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.loginBox}>
+        <Text style={styles.title}>TASKY</Text>
+        <Text style={styles.subtitle}>Faça login para continuar</Text>
+
         <TextInput 
-          style={styles.input} 
-          placeholder="E-mail" 
+          style={styles.input}
+          placeholder="Login"
           placeholderTextColor="#999"
-          value={email} 
-          onChangeText={setEmail} 
-          autoCapitalize="none" 
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
         />
-        
+
         <TextInput 
-          style={styles.input} 
-          placeholder="Senha" 
+          style={styles.input}
+          placeholder="Senha"
           placeholderTextColor="#999"
-          secureTextEntry 
-          value={senha} 
-          onChangeText={setSenha} 
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
-        
+
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Entrar / Cadastrar</Text>
+          <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.forgotButton} onPress={handleForgotPassword}>
-          <Text style={styles.forgotButtonText}>Esqueceu a senha? (Resetar App)</Text>
+        <TouchableOpacity style={styles.footerBtn}>
+          <Text style={styles.footerText}>Criar uma conta</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#ffffff', 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    padding: 20 
-  },
-  card: { 
-    width: '100%', 
-    backgroundColor: '#f8f5fd', 
-    borderRadius: 20, 
-    padding: 30, 
-    alignItems: 'center', 
-    elevation: 5 
-  },
-  title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    color: '#c6b6ff', 
-    marginBottom: 30 
-  },
-  input: { 
-    width: '100%', 
-    height: 50, 
-    backgroundColor: '#e5e5fa', 
-    borderRadius: 10, 
-    paddingHorizontal: 15, 
-    color: '#000', 
-    marginBottom: 15 
-  },
-  button: { 
-    width: '100%', 
-    height: 50, 
-    backgroundColor: '#6d59db', 
-    borderRadius: 10, 
-    alignItems: 'center', 
+  container: {
+    flex: 1,
+    backgroundColor: '#d8d4f0', // Mesma cor tema da Home
     justifyContent: 'center',
-    marginTop: 10
+    alignItems: 'center',
   },
-  buttonText: { 
-    color: '#fff', 
-    fontSize: 18, 
-    fontWeight: 'bold' 
+  loginBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  forgotButton: {
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#6d59db',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 25,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#eee',
+    color: '#333'
+  },
+  button: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#6d59db',
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  footerBtn: {
     marginTop: 20,
-    padding: 10
   },
-  forgotButtonText: {
+  footerText: {
     color: '#6d59db',
     fontSize: 14,
-    fontWeight: '500',
-    textDecorationLine: 'underline'
-  }
+  },
 });
