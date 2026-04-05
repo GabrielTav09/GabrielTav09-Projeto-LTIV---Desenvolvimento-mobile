@@ -9,25 +9,94 @@ import {
   KeyboardAvoidingView, 
   Platform 
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// O segredo está nas chaves { navigation } para desestruturar a prop
 export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState(''); // Alterado de email para login
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Validação simples para não entrar vazio
-    if (email.trim() === '' || password.trim() === '') {
-      Alert.alert("Aviso", "Por favor, preencha o e-mail e a senha.");
+  // Função para realizar o Login
+  const handleLogin = async () => {
+    const loginLimpo = login.trim();
+    const senhaLimpa = password.trim();
+
+    if (loginLimpo === '' || senhaLimpa === '') {
+      Alert.alert("Aviso", "Preencha todos os campos.");
       return;
     }
 
-    // Verifica se o navigation existe antes de chamar o replace
-    if (navigation && navigation.replace) {
-      navigation.replace('Home');
-    } else {
-      Alert.alert("Erro", "O sistema de navegação não foi encontrado.");
+    try {
+      const savedUser = await AsyncStorage.getItem('@user_credentials');
+      if (savedUser) {
+        const { login: storedLogin, password: storedPassword } = JSON.parse(savedUser);
+
+        if (loginLimpo === storedLogin && senhaLimpa === storedPassword) {
+          navigation.replace('Home');
+        } else {
+          Alert.alert("Erro", "Login ou senha incorretos.");
+        }
+      } else {
+        Alert.alert("Erro", "Nenhum usuário cadastrado.");
+      }
+    } catch (e) {
+      Alert.alert("Erro", "Falha ao acessar os dados.");
     }
+  };
+
+  // Função para Criar Conta
+  const handleSignUp = async () => {
+    const loginLimpo = login.trim();
+    const senhaLimpa = password.trim();
+
+    if (loginLimpo === '' || senhaLimpa === '') {
+      Alert.alert("Aviso", "Preencha login e senha para cadastrar.");
+      return;
+    }
+
+    try {
+      const existingUser = await AsyncStorage.getItem('@user_credentials');
+
+      if (existingUser) {
+        Alert.alert(
+          "Conta já existente", 
+          "Já existe um usuário cadastrado. Use 'Esqueci a senha' para alterar."
+        );
+        return; 
+      }
+
+      const userData = { login: loginLimpo, password: senhaLimpa };
+      await AsyncStorage.setItem('@user_credentials', JSON.stringify(userData));
+      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      
+    } catch (e) {
+      Alert.alert("Erro", "Não foi possível realizar o cadastro.");
+    }
+  };
+
+  // Função para Redefinir
+  const handleForgotPassword = () => {
+    Alert.alert(
+      "Redefinir Acesso",
+      "Deseja substituir o login e senha atuais pelos dados digitados acima?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Sim, Redefinir", 
+          onPress: async () => {
+            const loginLimpo = login.trim();
+            const senhaLimpa = password.trim();
+
+            if (loginLimpo !== '' && senhaLimpa !== '') {
+              const userData = { login: loginLimpo, password: senhaLimpa };
+              await AsyncStorage.setItem('@user_credentials', JSON.stringify(userData));
+              Alert.alert("Sucesso", "Seus dados de acesso foram atualizados!");
+            } else {
+              Alert.alert("Atenção", "Digite o novo login e senha antes de redefinir.");
+            }
+          } 
+        }
+      ]
+    );
   };
 
   return (
@@ -37,16 +106,15 @@ export default function LoginScreen({ navigation }: any) {
     >
       <View style={styles.loginBox}>
         <Text style={styles.title}>TASKY</Text>
-        <Text style={styles.subtitle}>Faça login para continuar</Text>
+        <Text style={styles.subtitle}>Sua agenda inteligente</Text>
 
         <TextInput 
           style={styles.input}
-          placeholder="Login"
+          placeholder="Login" // Texto alterado aqui
           placeholderTextColor="#999"
-          keyboardType="email-address"
           autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
+          value={login}
+          onChangeText={setLogin}
         />
 
         <TextInput 
@@ -62,9 +130,15 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.buttonText}>Entrar</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.footerBtn}>
-          <Text style={styles.footerText}>Criar uma conta</Text>
-        </TouchableOpacity>
+        <View style={styles.footerRow}>
+          <TouchableOpacity onPress={handleSignUp}>
+            <Text style={styles.footerLink}>Criar uma conta</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.footerLink}>Esqueci a senha</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -73,7 +147,7 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#d8d4f0', // Mesma cor tema da Home
+    backgroundColor: '#d8d4f0', 
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -83,14 +157,14 @@ const styles = StyleSheet.create({
     padding: 30,
     borderRadius: 20,
     alignItems: 'center',
-    elevation: 5,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#6d59db',
     marginBottom: 5,
@@ -125,11 +199,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  footerBtn: {
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
     marginTop: 20,
   },
-  footerText: {
+  footerLink: {
     color: '#6d59db',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

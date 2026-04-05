@@ -135,6 +135,18 @@ export default function HomeScreen({ navigation }: any) {
     setTitle(''); setTime(''); setDescription(''); setEditingTaskId(null);
   };
 
+  // FUNÇÃO DE EXCLUSÃO COM CONFIRMAÇÃO
+  const confirmDelete = (id: string) => {
+    Alert.alert(
+      "Excluir Tarefa",
+      "Tem certeza que deseja apagar esta tarefa?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Excluir", style: "destructive", onPress: () => deleteTask(id) }
+      ]
+    );
+  };
+
   const deleteTask = async (id: string) => {
     const newTasks = { ...tasks };
     const taskToDelete = newTasks[selectedDate].find(t => t.id === id);
@@ -147,7 +159,6 @@ export default function HomeScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 1. TÍTULO ALTERADO PARA "TASKY" */}
       <View style={styles.topBar}>
         <Text style={styles.topBarTitle}>Minha Agenda</Text>
         <TouchableOpacity onPress={() => navigation.replace('Login')} style={styles.logoutBtn}>
@@ -182,7 +193,8 @@ export default function HomeScreen({ navigation }: any) {
                 <TouchableOpacity onPress={() => { setEditingTaskId(item.id); setTitle(item.title); setDescription(item.description); setTime(item.time); setModalVisible(true); }}>
                   <Text style={styles.editText}>Editar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteTask(item.id)}>
+                {/* CHAMADA PARA A CONFIRMAÇÃO AQUI */}
+                <TouchableOpacity onPress={() => confirmDelete(item.id)}>
                   <Text style={styles.deleteText}>Excluir</Text>
                 </TouchableOpacity>
               </View>
@@ -214,17 +226,16 @@ export default function HomeScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  // 2. LAYOUT MAIS COMPACTO: padding reduzido
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#fff' },
-  topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db' }, // Mantive a cor do tema
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#ffffff' },
+  topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db' }, 
   logoutBtn: { backgroundColor: '#f0f0f0', padding: 8, borderRadius: 10, justifyContent: 'center' },
   logoutText: { color: '#666', fontWeight: '600' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 10, marginBottom: 5 }, // Reduzi margens superiores e inferiores
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 10, marginBottom: 5 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#6d59db' },
   sectionDate: { color: '#888' },
-  taskCard: { padding: 15, marginHorizontal: 20, marginVertical: 4, backgroundColor: '#f9f9f9', borderRadius: 15, flexDirection: 'row', alignItems: 'center', elevation: 3 }, // Reduzi vertical margin
-  taskConcluida: { backgroundColor: '#d1ffd1', opacity: 0.8 }, // Verde quando concluída
-  textRisca: { textDecorationLine: 'line-through', color: '#888' }, // Riscado quando concluída
+  taskCard: { padding: 15, marginHorizontal: 20, marginVertical: 4, backgroundColor: '#f9f9f9', borderRadius: 15, flexDirection: 'row', alignItems: 'center', elevation: 3 },
+  taskConcluida: { backgroundColor: '#d1ffd1', opacity: 0.8 },
+  textRisca: { textDecorationLine: 'line-through', color: '#888' },
   taskTitle: { fontSize: 16, fontWeight: 'bold' },
   taskDescription: { fontSize: 14, color: '#666' },
   taskInfo: { fontSize: 12, color: '#999', marginTop: 4 },
