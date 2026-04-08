@@ -7,15 +7,19 @@ import {
   TouchableOpacity, 
   Alert, 
   KeyboardAvoidingView, 
-  Platform 
+  Platform,
+  Image // Componente para renderizar a logo
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// DIRETÓRIO CORRIGIDO: O './' indica que a pasta assets está na mesma raiz do arquivo Login.tsx
+import LogoImg from './assets/Logo'; 
+
 export default function LoginScreen({ navigation }: any) {
-  const [login, setLogin] = useState(''); // Alterado de email para login
+  const [login, setLogin] = useState(''); 
   const [password, setPassword] = useState('');
 
-  // Função para realizar o Login
+  // Função para realizar o Login - Funcionalidade Mantida
   const handleLogin = async () => {
     const loginLimpo = login.trim();
     const senhaLimpa = password.trim();
@@ -43,7 +47,7 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Criar Conta
+  // Função para Criar Conta - Funcionalidade Mantida (Não sobrescreve se já existir)
   const handleSignUp = async () => {
     const loginLimpo = login.trim();
     const senhaLimpa = password.trim();
@@ -73,7 +77,7 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Redefinir
+  // Função para Redefinir - Funcionalidade Mantida
   const handleForgotPassword = () => {
     Alert.alert(
       "Redefinir Acesso",
@@ -105,12 +109,20 @@ export default function LoginScreen({ navigation }: any) {
       style={styles.container}
     >
       <View style={styles.loginBox}>
+        
+        {/* LOGO ADICIONADA AQUI */}
+        <Image 
+          source={LogoImg} 
+          style={styles.logo} 
+          resizeMode="contain" 
+        />
+
         <Text style={styles.title}>TASKY</Text>
         <Text style={styles.subtitle}>Sua agenda inteligente</Text>
 
         <TextInput 
           style={styles.input}
-          placeholder="Login" // Texto alterado aqui
+          placeholder="Login" 
           placeholderTextColor="#999"
           autoCapitalize="none"
           value={login}
@@ -162,6 +174,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  // ESTILO DA LOGO
+  logo: {
+    width: 120, // Tamanho ajustado para visibilidade
+    height: 120, 
+    marginBottom: 10, // Espaço entre a logo e o texto TASKY
   },
   title: {
     fontSize: 32,

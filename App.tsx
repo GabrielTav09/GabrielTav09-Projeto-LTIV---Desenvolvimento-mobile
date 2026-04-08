@@ -37,7 +37,7 @@ export default function App() {
           name="Home" 
           component={HomeScreen} 
           options={{ 
-            title: 'Task',
+            title: 'TASKY',
             headerLeft: () => null, // Remove o botão de voltar após o login por segurança
           }} 
         />
