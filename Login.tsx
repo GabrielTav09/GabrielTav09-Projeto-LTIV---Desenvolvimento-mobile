@@ -12,8 +12,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// DIRETÓRIO CORRIGIDO: O './' indica que a pasta assets está na mesma raiz do arquivo Login.tsx
-import LogoImg from './assets/Logo'; 
+// DIRETÓRIO: O './' indica que a pasta assets está na mesma raiz do arquivo Login.tsx
+import LogoImg from './assets/logo.png'; 
 
 export default function LoginScreen({ navigation }: any) {
   const [login, setLogin] = useState(''); 
