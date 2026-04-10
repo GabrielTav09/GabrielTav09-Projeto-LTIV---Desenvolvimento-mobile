@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
 interface AlertSettingsProps {
   visible: boolean;
   onClose: () => void;
