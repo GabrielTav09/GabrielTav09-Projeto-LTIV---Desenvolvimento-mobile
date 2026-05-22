@@ -159,73 +159,83 @@ return (
     </View>
 
 
-// Calendário Interativo 
+{/* Calendário Interativo */}
     <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
 
-// Título da Lista (Data formatada para PT-BR)      
-      <View style={styles.sectionHeader}>
+{/* Título da Lista (Data formatada para PT-BR) */}      
+    <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
       <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
     </View>
 
-// Lista de Tarefas do Dia 
-      <FlatList
-        data={tasks[selectedDate] || []}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const currentStatus = item.status || 'pendente';
-          const isConcluida = currentStatus === 'concluída';
-   
-          return (
-            <View style={[styles.taskCard, isConcluida && styles.taskConcluida]}>
-              <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleTaskStatus(item.id)}>
-                <Text style={[styles.taskTitle, isConcluida && styles.textRisca]}>
-                  {item.title}
-                </Text>
-                {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
-                <Text style={styles.taskInfo}>⏰ {item.time} - {currentStatus.toUpperCase()}</Text>
+{/* Lista de Tarefas do Dia */} 
+    <FlatList
+      data={tasks[selectedDate] || []}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => {
+        const currentStatus = item.status || 'pendente';
+        const isConcluida = currentStatus === 'concluída';
+ 
+        return (
+          <View style={[styles.taskCard, isConcluida && styles.taskConcluida]}>
+            <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleTaskStatus(item.id)}>
+              <Text style={[styles.taskTitle, isConcluida && styles.textRisca]}>
+                {item.title}
+              </Text>
+              {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
+              <Text style={styles.taskInfo}>⏰ {item.time} - {currentStatus.toUpperCase()}</Text>
+            </TouchableOpacity>
+
+            {/* Lado direito: Botões de Ação */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity onPress={() => { setEditingTaskId(item.id); setTitle(item.title); setDescription(item.description); setTime(item.time); setModalVisible(true); }}>
+                <Text style={styles.editText}>Editar</Text>
               </TouchableOpacity>
-// Lado direito: Botões de Ação
-              <View style={styles.actionButtons}>
-                <TouchableOpacity onPress={() => { setEditingTaskId(item.id); setTitle(item.title); setDescription(item.description); setTime(item.time); setModalVisible(true); }}>
-                  <Text style={styles.editText}>Editar</Text>
-                </TouchableOpacity>
-                {/* CHAMADA PARA A CONFIRMAÇÃO AQUI */}
-                <TouchableOpacity onPress={() => confirmDelete(item.id)}>
-                  <Text style={styles.deleteText}>Excluir</Text>
-                </TouchableOpacity>
-              </View>
+              
+              {/* CHAMADA PARA A CONFIRMAÇÃO AQUI */}
+              <TouchableOpacity onPress={() => confirmDelete(item.id)}>
+                <Text style={styles.deleteText}>Excluir</Text>
+              </TouchableOpacity>
             </View>
-          );
-        }}
-      />
-
-
-// Botão Flutuante (Add)
-      <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}><Text style={styles.fabText}>+</Text></TouchableOpacity>
-
-
-
-// Janela de Cadastro/Edição
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Nova Tarefa</Text>
-            <TextInput placeholder="Título" style={styles.input} value={title} onChangeText={setTitle} />
-            <TextInput placeholder="Descrição" style={[styles.input, { height: 70 }]} multiline value={description} onChangeText={setDescription} />
-// Botão que abre o seletor de horas                       
-            <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
-              <Text>{time ? `⏰ ${time}` : 'Escolher Horário'}</Text>
-            </TouchableOpacity> 
-            //Componente nativo de relógio
-            {showPicker && <DateTimePicker value={new Date()} mode="time" is24Hour={true} onChange={onTimeChange} />}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}><Text style={styles.buttonText}>Salvar</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => {setModalVisible(false); setEditingTaskId(null);}} style={{ marginTop: 15 }}><Text>Cancelar</Text></TouchableOpacity>
           </View>
+        );
+      }}
+    />
+
+
+{/* Botão Flutuante (Add) */}
+    <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
+      <Text style={styles.fabText}>+</Text>
+    </TouchableOpacity>
+
+
+{/* Janela de Cadastro/Edição */}
+    <Modal visible={modalVisible} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalHeader}>Nova Tarefa</Text>
+          <TextInput placeholder="Título" style={styles.input} value={title} onChangeText={setTitle} />
+          <TextInput placeholder="Descrição" style={[styles.input, { height: 70 }]} multiline value={description} onChangeText={setDescription} />
+          
+{/* Botão que abre o seletor de horas */}                      
+          <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+            <Text>{time ? `⏰ ${time}` : 'Escolher Horário'}</Text>
+          </TouchableOpacity> 
+          
+{/* Componente nativo de relógio */}
+          {showPicker && <DateTimePicker value={new Date()} mode="time" is24Hour={true} onChange={onTimeChange} />}
+          
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}>
+            <Text style={styles.buttonText}>Salvar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => {setModalVisible(false); setEditingTaskId(null);}} style={{ marginTop: 15 }}>
+            <Text>Cancelar</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </SafeAreaView>
-  );
+      </View>
+    </Modal>
+  </SafeAreaView>
+);
 }
 
 const styles = StyleSheet.create({
