@@ -10,92 +10,95 @@ import {
   Platform,
   Image // Componente para renderizar a logo
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// Importações do Firebase
+import { auth } from './firebaseConfig';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  sendPasswordResetEmail 
+} from 'firebase/auth';
 
 // DIRETÓRIO: O './' indica que a pasta assets está na mesma raiz do arquivo Login.tsx
-import LogoImg from './assets/logo.png'; 
+import LogoImg from './assets/logo.png';
 
 export default function LoginScreen({ navigation }: any) {
   const [login, setLogin] = useState(''); 
   const [password, setPassword] = useState('');
 
-  // Função para realizar o Login - Funcionalidade Mantida
+
+// Função para realizar o Login via Firebase
   const handleLogin = async () => {
-    const loginLimpo = login.trim();
+    const emailLimpo = login.trim(); // Dica: o Firebase usa e-mail como login
     const senhaLimpa = password.trim();
 
-    if (loginLimpo === '' || senhaLimpa === '') {
+    if (emailLimpo === '' || senhaLimpa === '') {
       Alert.alert("Aviso", "Preencha todos os campos.");
       return;
     }
 
     try {
-      const savedUser = await AsyncStorage.getItem('@user_credentials');
-      if (savedUser) {
-        const { login: storedLogin, password: storedPassword } = JSON.parse(savedUser);
-
-        if (loginLimpo === storedLogin && senhaLimpa === storedPassword) {
-          navigation.replace('Home');
-        } else {
-          Alert.alert("Erro", "Login ou senha incorretos.");
-        }
+      // Faz login na nuvem do Firebase
+      await signInWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
+      navigation.replace('Home');
+    } catch (error: any) {
+      // Trata erros comuns do Firebase
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        Alert.alert("Erro", "E-mail ou senha incorretos.");
+      } else if (error.code === 'auth/invalid-email') {
+        Alert.alert("Erro", "Formato de e-mail inválido.");
       } else {
-        Alert.alert("Erro", "Nenhum usuário cadastrado.");
+        Alert.alert("Erro", "Falha ao acessar os dados.");
       }
-    } catch (e) {
-      Alert.alert("Erro", "Falha ao acessar os dados.");
     }
   };
 
-  // Função para Criar Conta - Funcionalidade Mantida (Não sobrescreve se já existir)
+  // Função para Criar Conta - Agora via Firebase
   const handleSignUp = async () => {
-    const loginLimpo = login.trim();
+    const emailLimpo = login.trim();
     const senhaLimpa = password.trim();
 
-    if (loginLimpo === '' || senhaLimpa === '') {
-      Alert.alert("Aviso", "Preencha login e senha para cadastrar.");
+    if (emailLimpo === '' || senhaLimpa === '') {
+      Alert.alert("Aviso", "Preencha e-mail e senha para cadastrar.");
       return;
     }
 
     try {
-      const existingUser = await AsyncStorage.getItem('@user_credentials');
-
-      if (existingUser) {
-        Alert.alert(
-          "Conta já existente", 
-          "Já existe um usuário cadastrado. Use 'Esqueci a senha' para alterar."
-        );
-        return; 
-      }
-
-      const userData = { login: loginLimpo, password: senhaLimpa };
-      await AsyncStorage.setItem('@user_credentials', JSON.stringify(userData));
+      // Cria o usuário diretamente no painel Authentication
+      await createUserWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
       Alert.alert("Sucesso", "Conta criada com sucesso!");
-      
-    } catch (e) {
-      Alert.alert("Erro", "Não foi possível realizar o cadastro.");
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        Alert.alert("Conta já existente", "Este e-mail já está cadastrado.");
+      } else if (error.code === 'auth/weak-password') {
+        Alert.alert("Senha Fraca", "A senha precisa ter pelo menos 6 caracteres.");
+      } else {
+        Alert.alert("Erro", "Não foi possível realizar o cadastro.");
+      }
     }
   };
 
-  // Função para Redefinir - Funcionalidade Mantida
+  // Função para Redefinir - Agora envia um e-mail de recuperação oficial do Firebase
   const handleForgotPassword = () => {
+    const emailLimpo = login.trim();
+
+    if (emailLimpo === '') {
+      Alert.alert("Atenção", "Digite seu e-mail no campo 'Login' para redefinir.");
+      return;
+    }
+
     Alert.alert(
       "Redefinir Acesso",
-      "Deseja substituir o login e senha atuais pelos dados digitados acima?",
+      `Deseja receber um link de redefinição de senha no e-mail: ${emailLimpo}?`,
       [
         { text: "Cancelar", style: "cancel" },
         { 
-          text: "Sim, Redefinir", 
+          text: "Sim, Enviar", 
           onPress: async () => {
-            const loginLimpo = login.trim();
-            const senhaLimpa = password.trim();
-
-            if (loginLimpo !== '' && senhaLimpa !== '') {
-              const userData = { login: loginLimpo, password: senhaLimpa };
-              await AsyncStorage.setItem('@user_credentials', JSON.stringify(userData));
-              Alert.alert("Sucesso", "Seus dados de acesso foram atualizados!");
-            } else {
-              Alert.alert("Atenção", "Digite o novo login e senha antes de redefinir.");
+            try {
+              await sendPasswordResetEmail(auth, emailLimpo);
+              Alert.alert("Sucesso", "E-mail de redefinição enviado! Verifique sua caixa de entrada.");
+            } catch (error: any) {
+              Alert.alert("Erro", "Não foi possível enviar o e-mail de redefinição.");
             }
           } 
         }
@@ -122,12 +125,14 @@ export default function LoginScreen({ navigation }: any) {
 
         <TextInput 
           style={styles.input}
-          placeholder="Login" 
+          placeholder="E-mail" // Mudou para indicar que agora é e-mail
           placeholderTextColor="#999"
           autoCapitalize="none"
+          keyboardType="email-address" // Adicionado para abrir o teclado com o "@" fácil
+          autoComplete="email" // Ajuda o celular a autocompletar o e-mail do usuário
           value={login}
           onChangeText={setLogin}
-        />
+          />
 
         <TextInput 
           style={styles.input}
