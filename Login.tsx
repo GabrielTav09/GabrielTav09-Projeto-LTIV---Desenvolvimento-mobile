@@ -8,8 +8,10 @@ import {
   Alert, 
   KeyboardAvoidingView, 
   Platform,
-  Image // Componente para renderizar a logo
+  Image,
+  Modal // <-- IMPORTAMOS O MODAL AQUI
 } from 'react-native';
+
 // Importações do Firebase
 import { auth } from './firebaseConfig';
 import { 
@@ -18,17 +20,21 @@ import {
   sendPasswordResetEmail 
 } from 'firebase/auth';
 
-// DIRETÓRIO: O './' indica que a pasta assets está na mesma raiz do arquivo Login.tsx
 import LogoImg from './assets/logo.png';
 
 export default function LoginScreen({ navigation }: any) {
+  // Estados da tela principal (Login)
   const [login, setLogin] = useState(''); 
   const [password, setPassword] = useState('');
 
+  // Estados do Modal de Cadastro
+  const [signUpVisible, setSignUpVisible] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
-// Função para realizar o Login via Firebase
+  // Função para realizar o Login via Firebase
   const handleLogin = async () => {
-    const emailLimpo = login.trim(); // Dica: o Firebase usa e-mail como login
+    const emailLimpo = login.trim();
     const senhaLimpa = password.trim();
 
     if (emailLimpo === '' || senhaLimpa === '') {
@@ -37,11 +43,9 @@ export default function LoginScreen({ navigation }: any) {
     }
 
     try {
-      // Faz login na nuvem do Firebase
       await signInWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
       navigation.replace('Home');
     } catch (error: any) {
-      // Trata erros comuns do Firebase
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
         Alert.alert("Erro", "E-mail ou senha incorretos.");
       } else if (error.code === 'auth/invalid-email') {
@@ -52,10 +56,10 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Criar Conta - Agora via Firebase
+  // Função para Criar Conta - Agora puxa os dados do Modal
   const handleSignUp = async () => {
-    const emailLimpo = login.trim();
-    const senhaLimpa = password.trim();
+    const emailLimpo = newEmail.trim();
+    const senhaLimpa = newPassword.trim();
 
     if (emailLimpo === '' || senhaLimpa === '') {
       Alert.alert("Aviso", "Preencha e-mail e senha para cadastrar.");
@@ -63,9 +67,14 @@ export default function LoginScreen({ navigation }: any) {
     }
 
     try {
-      // Cria o usuário diretamente no painel Authentication
       await createUserWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
-      Alert.alert("Sucesso", "Conta criada com sucesso!");
+      Alert.alert("Sucesso", "Conta criada com sucesso! Agora você pode entrar.");
+      
+      // Fecha o modal e limpa os campos de cadastro após o sucesso
+      setSignUpVisible(false);
+      setNewEmail('');
+      setNewPassword('');
+      
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert("Conta já existente", "Este e-mail já está cadastrado.");
@@ -77,12 +86,12 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Redefinir - Agora envia um e-mail de recuperação oficial do Firebase
+  // Função para Redefinir Senha
   const handleForgotPassword = () => {
     const emailLimpo = login.trim();
 
     if (emailLimpo === '') {
-      Alert.alert("Atenção", "Digite seu e-mail no campo 'Login' para redefinir.");
+      Alert.alert("Atenção", "Digite seu e-mail no campo 'E-mail' para redefinir.");
       return;
     }
 
@@ -108,31 +117,28 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
       <View style={styles.loginBox}>
-        
-        {/* LOGO ADICIONADA AQUI */}
         <Image 
           source={LogoImg} 
           style={styles.logo} 
           resizeMode="contain" 
         />
-
         <Text style={styles.title}>TASKY</Text>
         <Text style={styles.subtitle}>Sua agenda inteligente</Text>
 
         <TextInput 
           style={styles.input}
-          placeholder="E-mail" // Mudou para indicar que agora é e-mail
+          placeholder="E-mail"
           placeholderTextColor="#999"
           autoCapitalize="none"
-          keyboardType="email-address" // Adicionado para abrir o teclado com o "@" fácil
-          autoComplete="email" // Ajuda o celular a autocompletar o e-mail do usuário
+          keyboardType="email-address"
+          autoComplete="email"
           value={login}
           onChangeText={setLogin}
-          />
+        />
 
         <TextInput 
           style={styles.input}
@@ -148,7 +154,8 @@ export default function LoginScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <View style={styles.footerRow}>
-          <TouchableOpacity onPress={handleSignUp}>
+          {/* Ao invés de rodar a função, agora esse botão apenas ABRE o Modal */}
+          <TouchableOpacity onPress={() => setSignUpVisible(true)}>
             <Text style={styles.footerLink}>Criar uma conta</Text>
           </TouchableOpacity>
 
@@ -157,6 +164,45 @@ export default function LoginScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* ================= MODAL DE CADASTRO ================= */}
+      <Modal visible={signUpVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.title}>Nova Conta</Text>
+            <Text style={styles.subtitle}>Preencha para se cadastrar</Text>
+
+            <TextInput 
+              style={styles.input}
+              placeholder="Digite seu melhor E-mail"
+              placeholderTextColor="#999"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={newEmail}
+              onChangeText={setNewEmail}
+            />
+
+            <TextInput 
+              style={styles.input}
+              placeholder="Crie uma Senha (min. 6 caracteres)"
+              placeholderTextColor="#999"
+              secureTextEntry
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+
+            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
+              <Text style={styles.buttonText}>Cadastrar</Text>
+            </TouchableOpacity>
+
+            {/* Botão de Cancelar para fechar o Modal */}
+            <TouchableOpacity onPress={() => setSignUpVisible(false)} style={styles.cancelButton}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </KeyboardAvoidingView>
   );
 }
@@ -180,11 +226,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
-  // ESTILO DA LOGO
   logo: {
-    width: 120, // Tamanho ajustado para visibilidade
+    width: 120, 
     height: 120, 
-    marginBottom: 10, // Espaço entre a logo e o texto TASKY
+    marginBottom: 10, 
   },
   title: {
     fontSize: 32,
@@ -233,4 +278,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  // --- ESTILOS NOVOS DO MODAL ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escuro transparente
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    width: '85%',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    marginTop: 15,
+    padding: 10,
+  },
+  cancelText: {
+    color: '#999',
+    fontSize: 14,
+    fontWeight: 'bold',
+  }
 });
