@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView, 
   Platform,
   Image,
-  Modal // <-- IMPORTAMOS O MODAL AQUI
+  Modal 
 } from 'react-native';
 
 // Importações do Firebase
@@ -31,6 +31,10 @@ export default function LoginScreen({ navigation }: any) {
   const [signUpVisible, setSignUpVisible] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+
+  // Estados do Modal de Esqueci a Senha
+  const [forgotPasswordVisible, setForgotPasswordVisible] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   // Função para realizar o Login via Firebase
   const handleLogin = async () => {
@@ -56,7 +60,7 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Criar Conta - Agora puxa os dados do Modal
+  // Função para Criar Conta
   const handleSignUp = async () => {
     const emailLimpo = newEmail.trim();
     const senhaLimpa = newPassword.trim();
@@ -69,12 +73,9 @@ export default function LoginScreen({ navigation }: any) {
     try {
       await createUserWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
       Alert.alert("Sucesso", "Conta criada com sucesso! Agora você pode entrar.");
-      
-      // Fecha o modal e limpa os campos de cadastro após o sucesso
       setSignUpVisible(false);
       setNewEmail('');
       setNewPassword('');
-      
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
         Alert.alert("Conta já existente", "Este e-mail já está cadastrado.");
@@ -86,46 +87,38 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Função para Redefinir Senha
-  const handleForgotPassword = () => {
-    const emailLimpo = login.trim();
+  // Função para Redefinir Senha - Agora disparada de dentro do novo Modal
+  const handleSendResetEmail = async () => {
+    const emailLimpo = resetEmail.trim();
 
     if (emailLimpo === '') {
-      Alert.alert("Atenção", "Digite seu e-mail no campo 'E-mail' para redefinir.");
+      Alert.alert("Atenção", "Por favor, digite o seu e-mail.");
       return;
     }
 
-    Alert.alert(
-      "Redefinir Acesso",
-      `Deseja receber um link de redefinição de senha no e-mail: ${emailLimpo}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { 
-          text: "Sim, Enviar", 
-          onPress: async () => {
-            try {
-              await sendPasswordResetEmail(auth, emailLimpo);
-              Alert.alert("Sucesso", "E-mail de redefinição enviado! Verifique sua caixa de entrada.");
-            } catch (error: any) {
-              Alert.alert("Erro", "Não foi possível enviar o e-mail de redefinição.");
-            }
-          } 
-        }
-      ]
-    );
+    try {
+      await sendPasswordResetEmail(auth, emailLimpo);
+      Alert.alert("Sucesso", "E-mail de redefinição enviado! Verifique sua caixa de entrada.");
+      setForgotPasswordVisible(false); // Fecha o modal após enviar
+      setResetEmail(''); // Limpa o campo
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert("Erro", "O formato do e-mail inserido é inválido.");
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert("Erro", "Este e-mail não está cadastrado no sistema.");
+      } else {
+        Alert.alert("Erro", "Não foi possível enviar o e-mail de redefinição.");
+      }
+    }
   };
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined} // <-- CORREÇÃO DO BUG DA TELA ESPREMIDA
       style={styles.container}
     >
       <View style={styles.loginBox}>
-        <Image 
-          source={LogoImg} 
-          style={styles.logo} 
-          resizeMode="contain" 
-        />
+        <Image source={LogoImg} style={styles.logo} resizeMode="contain" />
         <Text style={styles.title}>TASKY</Text>
         <Text style={styles.subtitle}>Sua agenda inteligente</Text>
 
@@ -154,12 +147,12 @@ export default function LoginScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <View style={styles.footerRow}>
-          {/* Ao invés de rodar a função, agora esse botão apenas ABRE o Modal */}
           <TouchableOpacity onPress={() => setSignUpVisible(true)}>
             <Text style={styles.footerLink}>Criar uma conta</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={handleForgotPassword}>
+          {/* Agora abre a janelinha de recuperação de senha */}
+          <TouchableOpacity onPress={() => setForgotPasswordVisible(true)}>
             <Text style={styles.footerLink}>Esqueci a senha</Text>
           </TouchableOpacity>
         </View>
@@ -195,8 +188,35 @@ export default function LoginScreen({ navigation }: any) {
               <Text style={styles.buttonText}>Cadastrar</Text>
             </TouchableOpacity>
 
-            {/* Botão de Cancelar para fechar o Modal */}
             <TouchableOpacity onPress={() => setSignUpVisible(false)} style={styles.cancelButton}>
+              <Text style={styles.cancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ================= MODAL DE RECOVERY (ESQUECI A SENHA) ================= */}
+      <Modal visible={forgotPasswordVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.title}>Recuperar Acesso</Text>
+            <Text style={styles.subtitle}>Enviaremos um link de redefinição</Text>
+
+            <TextInput 
+              style={styles.input}
+              placeholder="Digite o e-mail da sua conta"
+              placeholderTextColor="#999"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={resetEmail}
+              onChangeText={setResetEmail}
+            />
+
+            <TouchableOpacity style={styles.button} onPress={handleSendResetEmail}>
+              <Text style={styles.buttonText}>Enviar E-mail</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => setForgotPasswordVisible(false)} style={styles.cancelButton}>
               <Text style={styles.cancelText}>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -278,10 +298,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
-  // --- ESTILOS NOVOS DO MODAL ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escuro transparente
+    backgroundColor: 'rgba(0,0,0,0.5)', 
     justifyContent: 'center',
     alignItems: 'center',
   },
