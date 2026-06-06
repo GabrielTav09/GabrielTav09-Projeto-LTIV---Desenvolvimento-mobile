@@ -5,9 +5,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import DateTimePicker from '@react-native-community/datetimepicker';
+
+// ADICIONADO: Importações do Firebase para usar o Banco de Dados e pegar o Usuário Logado
+import { auth, db } from './firebaseConfig';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 // Tradução do Calendário
@@ -47,18 +50,45 @@ export default function HomeScreen({ navigation }: any) {
   const [showPicker, setShowPicker] = useState(false);
 
 
+// ADICIONADO: Dispara o carregamento das tarefas assim que o usuário entra na Home
+  useEffect(() => {
+    loadTasks();
+  }, []);
 
-// Busca as tarefas salvas no armazenamento interno do celular (disco)
+
+// Busca as tarefas salvas no banco de dados da nuvem (Substituiu o AsyncStorage)
   const loadTasks = async () => {
-    const data = await AsyncStorage.getItem('@tasks');
-    if (data) setTasks(JSON.parse(data));
-  };
-// Salva as tarefas no armazenamento interno e atualiza o estado da tela 
-  const saveTasks = async (newTasks: Record<string, Tarefa[]>) => {
-    setTasks(newTasks);
-    await AsyncStorage.setItem('@tasks', JSON.stringify(newTasks));
+    try {
+      const user = auth.currentUser;
+      if (!user) return; // Se não tiver usuário logado, não faz nada
+      
+      // Cria uma referência para o documento exclusivo deste usuário
+      const docRef = doc(db, 'user_tasks', user.uid); 
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        setTasks(docSnap.data().tasks); // Puxa as tarefas e joga na tela
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao carregar as tarefas da nuvem.");
+    }
   };
 
+
+// Salva as tarefas no banco de dados da nuvem e atualiza o estado da tela (Substituiu o AsyncStorage)
+  const saveTasks = async (newTasks: Record<string, Tarefa[]>) => {
+    setTasks(newTasks); // Mantém a atualização instantânea visual na tela
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const docRef = doc(db, 'user_tasks', user.uid);
+        // Salva/Sobrescreve a lista inteira de tarefas dentro do documento do usuário
+        await setDoc(docRef, { tasks: newTasks }); 
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Falha ao sincronizar tarefas com a nuvem.");
+    }
+  };
 
 
 // Altera entre Pendente e Concluída
@@ -75,7 +105,6 @@ export default function HomeScreen({ navigation }: any) {
   };
 
 
-
 // Cria o objeto de configuração para o componente Calendar destacar dias com tarefas
   const getMarkedDates = () => {
     const marked: any = {};
@@ -85,6 +114,7 @@ export default function HomeScreen({ navigation }: any) {
     marked[selectedDate] = { ...marked[selectedDate], selected: true, selectedColor: '#6d59db' };
     return marked;
   };
+
 // Captura o horário selecionado no relógio e formata para "HH:mm"
   const onTimeChange = (event: any, selectedTime?: Date) => {
     setShowPicker(false);
@@ -96,12 +126,12 @@ export default function HomeScreen({ navigation }: any) {
   };
 
 
-
 // Função principal para salvar ou atualizar uma tarefa
 const handleSaveTask = async () => {
   if (!title || !time) return Alert.alert("Erro", "Preencha título e horário.");
   const newTasks = { ...tasks };
   if (!newTasks[selectedDate]) newTasks[selectedDate] = [];
+  
   if (editingTaskId) {
     // Atualiza a tarefa existente
     newTasks[selectedDate] = newTasks[selectedDate].map(t => 
@@ -124,7 +154,6 @@ const handleSaveTask = async () => {
 };
 
 
-
 // FUNÇÃO DE EXCLUSÃO COM CONFIRMAÇÃO
   const confirmDelete = (id: string) => {
     Alert.alert(
@@ -136,7 +165,6 @@ const handleSaveTask = async () => {
       ]
     );
   };
-
 
 
 // Remove a tarefa e cancela a notificação agendada no sistema
@@ -157,7 +185,6 @@ return (
         <Text style={styles.logoutText}>Sair</Text>
       </TouchableOpacity>
     </View>
-
 
 {/* Calendário Interativo */}
     <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
@@ -202,12 +229,10 @@ return (
       }}
     />
 
-
 {/* Botão Flutuante (Add) */}
     <TouchableOpacity style={styles.fab} onPress={() => setModalVisible(true)}>
       <Text style={styles.fabText}>+</Text>
     </TouchableOpacity>
-
 
 {/* Janela de Cadastro/Edição */}
     <Modal visible={modalVisible} transparent animationType="slide">
@@ -217,7 +242,7 @@ return (
           <TextInput placeholder="Título" style={styles.input} value={title} onChangeText={setTitle} />
           <TextInput placeholder="Descrição" style={[styles.input, { height: 70 }]} multiline value={description} onChangeText={setDescription} />
           
-{/* Botão que abre o seletor de horas */}                      
+{/* Botão que abre o seletor de horas */}                       
           <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
             <Text>{time ? `⏰ ${time}` : 'Escolher Horário'}</Text>
           </TouchableOpacity> 
