@@ -57,6 +57,50 @@ export default function BinScreen({ navigation }: any) {
     }
   };
 
+  // ADICIONADO: Função para recuperar a tarefa, retornando ela para a Home e limpando do banco da lixeira
+  const recoverTask = async (task: TarefaDeletada) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) return;
+
+      // 1. Devolve a tarefa para a lista ativa da Home (user_tasks) na sua data original
+      const tasksRef = doc(db, 'user_tasks', user.uid);
+      const tasksSnap = await getDoc(tasksRef);
+      let activeTasks: Record<string, any> = {};
+
+      if (tasksSnap.exists()) {
+        activeTasks = tasksSnap.data().tasks || {};
+      }
+
+      if (!activeTasks[task.originalDate]) {
+        activeTasks[task.originalDate] = [];
+      }
+
+      // Reconstrói o molde original da tarefa limpa (sem os dados da lixeira)
+      const tarefaRestaurada = {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        time: task.time,
+        status: 'pendente'
+      };
+
+      activeTasks[task.originalDate].push(tarefaRestaurada);
+      await setDoc(tasksRef, { tasks: activeTasks });
+
+      // 2. Remove este item da lista de lixeira (user_trash)
+      const trashRef = doc(db, 'user_trash', user.uid);
+      const updatedTrash = deletedTasks.filter(t => t.id !== task.id);
+
+      setDeletedTasks(updatedTrash);
+      await setDoc(trashRef, { deletedTasks: updatedTrash });
+
+      Alert.alert("Sucesso", "Tarefa restaurada com sucesso para a sua agenda!");
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível recuperar a tarefa.");
+    }
+  };
+
   // Executa a exclusão definitiva manual do banco de dados
   const permanentDeleteTask = async (id: string) => {
     try {
@@ -73,11 +117,11 @@ export default function BinScreen({ navigation }: any) {
     }
   };
 
-  // Confirmação gráfica nativa antes de limpar definitivamente
+  // ALTERADO: Mensagem atualizada informando que a ação é irreversível e perderá o item permanentemente
   const confirmPermanentDelete = (id: string) => {
     Alert.alert(
       "Exclusão Definitiva",
-      "Deseja apagar permanentemente este item? Esta ação não pode ser desfeita.",
+      "Deseja apagar permanentemente este item? Caso exclua da lixeira, não poderá recuperar mais a tarefa em questão.",
       [
         { text: "Cancelar", style: "cancel" },
         { text: "Apagar", style: "destructive", onPress: () => permanentDeleteTask(id) }
@@ -126,10 +170,16 @@ export default function BinScreen({ navigation }: any) {
               <Text style={styles.expirationText}>⏳ {calcularDiasRestantes(item.deletedAt)}</Text>
             </View>
 
-            {/* Ação de apagar sem esperar os 60 dias */}
-            <TouchableOpacity onPress={() => confirmPermanentDelete(item.id)}>
-              <Text style={styles.deleteText}>Excluir</Text>
-            </TouchableOpacity>
+            {/* ADICIONADO: Lado direito agrupando os botões de recuperar e apagar em definitivo */}
+            <View style={styles.actionButtons}>
+              <TouchableOpacity onPress={() => recoverTask(item)}>
+                <Text style={styles.recoverText}>Recuperar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={() => confirmPermanentDelete(item.id)}>
+                <Text style={styles.deleteText}>Excluir</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
         ListEmptyComponent={
@@ -154,6 +204,9 @@ const styles = StyleSheet.create({
   taskDescription: { fontSize: 14, color: '#666', marginTop: 2 },
   taskInfo: { fontSize: 12, color: '#999', marginTop: 4 },
   expirationText: { fontSize: 12, color: '#d32f2f', fontWeight: '600', marginTop: 4 },
-  deleteText: { color: '#d32f2f', fontWeight: 'bold', marginLeft: 10 },
+  // ADICIONADO: Estilos para organizar os botões de ação na lixeira
+  actionButtons: { flexDirection: 'row', alignItems: 'center' },
+  recoverText: { color: '#6d59db', fontWeight: 'bold', marginRight: 12 },
+  deleteText: { color: '#d32f2f', fontWeight: 'bold' },
   emptyText: { textAlign: 'center', color: '#999', marginTop: 40, fontSize: 16 }
 });

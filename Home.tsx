@@ -157,11 +157,11 @@ const handleSaveTask = async () => {
 };
 
 
-// FUNÇÃO DE EXCLUSÃO COM CONFIRMAÇÃO
+// ALTERADO: Mensagem de confirmação modificada para avisar sobre o encaminhamento à lixeira por 60 dias
   const confirmDelete = (id: string) => {
     Alert.alert(
       "Excluir Tarefa",
-      "Tem certeza que deseja apagar esta tarefa?",
+      "Esta tarefa será encaminhada para a lixeira e será apagada definitivamente após 60 dias. Deseja continuar?",
       [
         { text: "Cancelar", style: "cancel" },
         { text: "Excluir", style: "destructive", onPress: () => deleteTask(id) }
@@ -322,7 +322,6 @@ const styles = StyleSheet.create({
   topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db', flex: 1, textAlign: 'center' }, 
   logoutBtn: { backgroundColor: '#f0f0f0', padding: 8, borderRadius: 10, justifyContent: 'center' },
   logoutText: { color: '#666', fontWeight: '600' },
-// ADICIONADO: Estilização do botão de menu e container suspenso da lixeira
   menuBtn: { padding: 8, borderRadius: 10, justifyContent: 'center' },
   menuBtnText: { color: '#6d59db', fontSize: 26, fontWeight: 'bold' },
   menuDropdown: { position: 'absolute', top: 60, left: 20, backgroundColor: '#ffffff', borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, zIndex: 999, width: 150 },
