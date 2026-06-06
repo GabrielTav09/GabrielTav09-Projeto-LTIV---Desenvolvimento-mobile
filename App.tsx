@@ -6,6 +6,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './Login';
 import HomeScreen from './Home';
 
+// ADICIONADO: Importação do arquivo de código da lixeira para registro na rota
+import BinScreen from './Bin';
+
 // Criando a pilha de navegação
 const Stack = createStackNavigator();
 
@@ -40,6 +43,14 @@ export default function App() {
             title: 'TASKY',
             headerLeft: () => null, // Remove o botão de voltar após o login por segurança
           }} 
+        />
+
+        {/* ADICIONADO: Tela da Lixeira - Definida como 'Bin' para o menu da Home redirecionar corretamente */}
+        {/* OBS: Opcionalmente definimos 'headerShown: false' porque a tela bin.tsx já possui um topo personalizado com botão de voltar */}
+        <Stack.Screen 
+          name="Bin" 
+          component={BinScreen} 
+          options={{ headerShown: false }} 
         />
 
       </Stack.Navigator>

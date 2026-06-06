@@ -42,6 +42,9 @@ export default function HomeScreen({ navigation }: any) {
   const [tasks, setTasks] = useState<Record<string, Tarefa[]>>({});
   const [modalVisible, setModalVisible] = useState(false);
   
+// ADICIONADO: Estado para controlar a visibilidade do menu de opções no topo esquerdo
+  const [menuVisible, setMenuVisible] = useState(false);
+
 // Estados para os campos do formulário
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -94,7 +97,7 @@ export default function HomeScreen({ navigation }: any) {
 // Altera entre Pendente e Concluída
   const toggleTaskStatus = async (id: string) => {
     const newTasks = { ...tasks };
-    newTasks[selectedDate] = newTasks[selectedDate].map(t => {
+    newTasks[selectedDate] = newTasks[newTasks[selectedDate] ? selectedDate : Object.keys(newTasks)[0]].map(t => {
       if (t.id === id) {
         const currentStatus = t.status || 'pendente';
         return { ...t, status: currentStatus === 'pendente' ? 'concluída' : 'pendente' };
@@ -109,7 +112,7 @@ export default function HomeScreen({ navigation }: any) {
   const getMarkedDates = () => {
     const marked: any = {};
     Object.keys(tasks).forEach(date => {
-      if (tasks[date].length > 0) marked[date] = { marked: true, dotColor: '#6d59db' };
+      if (tasks[date] && tasks[date].length > 0) marked[date] = { marked: true, dotColor: '#6d59db' };
     });
     marked[selectedDate] = { ...marked[selectedDate], selected: true, selectedColor: '#6d59db' };
     return marked;
@@ -167,9 +170,42 @@ const handleSaveTask = async () => {
   };
 
 
-// Remove a tarefa e cancela a notificação agendada no sistema
+// ADICIONADO: Remove a tarefa da listagem ativa e envia para a coleção de lixeira antes de salvar
   const deleteTask = async (id: string) => {
   const newTasks = { ...tasks };
+  
+  // ADICIONADO: Localiza o objeto da tarefa que está sendo deletada para enviar à lixeira
+  const tarefaParaLixeira = newTasks[selectedDate]?.find(t => t.id === id);
+
+  if (tarefaParaLixeira) {
+    try {
+      const user = auth.currentUser;
+      if (user) {
+        const lixeiraRef = doc(db, 'user_trash', user.uid);
+        const lixeiraSnap = await getDoc(lixeiraRef);
+        let tarefasLixeiraAtuais = [];
+
+        if (lixeiraSnap.exists()) {
+          tarefasLixeiraAtuais = lixeiraSnap.data().deletedTasks || [];
+        }
+
+        // ADICIONADO: Envia a tarefa com carimbo de data atual (timestamp) para controle de 60 dias
+        const novasTarefasLixeira = [
+          ...tarefasLixeiraAtuais,
+          {
+            ...tarefaParaLixeira,
+            deletedAt: new Date().toISOString(),
+            originalDate: selectedDate
+          }
+        ];
+
+        await setDoc(lixeiraRef, { deletedTasks: novasTarefasLixeira });
+      }
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível mover a tarefa para a lixeira no banco.");
+      return;
+    }
+  }
   
 // Filtra a lista removendo a tarefa com o id correspondente
   newTasks[selectedDate] = newTasks[selectedDate].filter(t => t.id !== id);
@@ -180,11 +216,28 @@ const handleSaveTask = async () => {
 return (
   <SafeAreaView style={styles.container}>
     <View style={styles.topBar}>
+{/* ADICIONADO: Botão do Menu de Opções no canto superior esquerdo */}
+      <TouchableOpacity onPress={() => setMenuVisible(!menuVisible)} style={styles.menuBtn}>
+        <Text style={styles.menuBtnText}>☰</Text>
+      </TouchableOpacity>
+
       <Text style={styles.topBarTitle}>Minha Agenda</Text>
       <TouchableOpacity onPress={() => navigation.replace('Login')} style={styles.logoutBtn}>
         <Text style={styles.logoutText}>Sair</Text>
       </TouchableOpacity>
     </View>
+
+{/* ADICIONADO: Container do menu Dropdown que aparece ao clicar no botão de 3 barras */}
+    {menuVisible && (
+      <View style={styles.menuDropdown}>
+        <TouchableOpacity 
+          style={styles.menuOption} 
+          onPress={() => { setMenuVisible(false); navigation.navigate('Bin'); }}
+        >
+          <Text style={styles.menuOptionText}>🗑️ Lixeira</Text>
+        </TouchableOpacity>
+      </View>
+    )}
 
 {/* Calendário Interativo */}
     <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
@@ -265,10 +318,16 @@ return (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#ffffff' },
-  topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db' }, 
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#ffffff' },
+  topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db', flex: 1, textAlign: 'center' }, 
   logoutBtn: { backgroundColor: '#f0f0f0', padding: 8, borderRadius: 10, justifyContent: 'center' },
   logoutText: { color: '#666', fontWeight: '600' },
+// ADICIONADO: Estilização do botão de menu e container suspenso da lixeira
+  menuBtn: { padding: 8, borderRadius: 10, justifyContent: 'center' },
+  menuBtnText: { color: '#6d59db', fontSize: 26, fontWeight: 'bold' },
+  menuDropdown: { position: 'absolute', top: 60, left: 20, backgroundColor: '#ffffff', borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, zIndex: 999, width: 150 },
+  menuOption: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#eee' },
+  menuOptionText: { fontSize: 16, color: '#333', fontWeight: '600' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 10, marginBottom: 5 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#6d59db' },
   sectionDate: { color: '#888' },
