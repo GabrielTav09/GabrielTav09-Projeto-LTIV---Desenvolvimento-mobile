@@ -53,10 +53,16 @@ export default function HomeScreen({ navigation }: any) {
   const [showPicker, setShowPicker] = useState(false);
 
 
-// ADICIONADO: Dispara o carregamento das tarefas assim que o usuário entra na Home
+// CORRIGIDO: Agora recarrega as tarefas sempre que a tela Home ganhar foco (voltar da lixeira)
   useEffect(() => {
-    loadTasks();
-  }, []);
+    loadTasks(); // Executa ao abrir o app pela primeira vez
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadTasks(); // Força a atualização vinda do banco sempre que voltar para cá
+    });
+
+    return unsubscribe;
+  }, [navigation]);
 
 
 // Busca as tarefas salvas no banco de dados da nuvem (Substituiu o AsyncStorage)
