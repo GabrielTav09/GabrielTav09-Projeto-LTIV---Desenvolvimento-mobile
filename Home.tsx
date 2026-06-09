@@ -52,6 +52,9 @@ export default function HomeScreen({ navigation }: any) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
+// ADICIONADO: Estado para gerenciar o critério de ordenação ativo ('criacao' ou 'alfabetica')
+  const [sortBy, setSortBy] = useState<'criacao' | 'alfabetica'>('criacao');
+
 
 // CORRIGIDO: Agora recarrega as tarefas sempre que a tela Home ganhar foco (voltar da lixeira)
   useEffect(() => {
@@ -219,6 +222,18 @@ const handleSaveTask = async () => {
   await saveTasks(newTasks);
 };
 
+// ADICIONADO: Organiza e retorna dinamicamente as tarefas baseando-se no filtro selecionado
+const getSortedTasks = () => {
+  const listaAtual = tasks[selectedDate] || [];
+  return [...listaAtual].sort((a, b) => {
+    if (sortBy === 'alfabetica') {
+      return a.title.localeCompare(b.title, 'pt-BR', { sensitivity: 'base' });
+    }
+    // 'criacao': Ordena cronologicamente usando o ID (timestamp gerado no Date.now())
+    return a.id.localeCompare(b.id);
+  });
+};
+
 return (
   <SafeAreaView style={styles.container}>
     <View style={styles.topBar}>
@@ -254,9 +269,26 @@ return (
       <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
     </View>
 
-{/* Lista de Tarefas do Dia */} 
+{/* ADICIONADO: Barra de botões para alternar a Ordenação Inteligente de forma dinâmica */}
+    <View style={styles.filterBar}>
+      <TouchableOpacity 
+        style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
+        onPress={() => setSortBy('criacao')}
+      >
+        <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity 
+        style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
+        onPress={() => setSortBy('alfabetica')}
+      >
+        <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
+      </TouchableOpacity>
+    </View>
+
+{/* ALTERADO: Propriedade data agora consome o resultado da função getSortedTasks() */} 
     <FlatList
-      data={tasks[selectedDate] || []}
+      data={getSortedTasks()}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => {
         const currentStatus = item.status || 'pendente';
@@ -352,5 +384,11 @@ const styles = StyleSheet.create({
   modalHeader: {fontSize: 18, fontWeight: 'bold', marginBottom: 15},
   input: { backgroundColor: '#f5f5f5', width: '100%', padding: 15, borderRadius: 12, marginBottom: 12 },
   saveButton: { backgroundColor: '#6d59db', width: '100%', padding: 15, borderRadius: 12, alignItems: 'center' },
-  buttonText: { color: '#fff', fontWeight: 'bold' }
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+  // ADICIONADO: Estilos organizados para a nova barra de Ordenação Inteligente
+  filterBar: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 8 },
+  filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 8 },
+  filterBtnActive: { backgroundColor: '#6d59db' },
+  filterBtnText: { color: '#666', fontWeight: '600', fontSize: 13 },
+  filterBtnTextActive: { color: '#fff' }
 });
