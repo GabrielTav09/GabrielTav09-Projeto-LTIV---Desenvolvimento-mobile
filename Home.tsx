@@ -351,8 +351,8 @@ export default function HomeScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalHeader}>Nova Tarefa</Text>
-            <TextInput placeholder="Título" style={styles.input} value={title} onChangeText={setTitle} />
-            <TextInput placeholder="Descrição" style={[styles.input, { height: 70 }]} multiline value={description} onChangeText={setDescription} />
+            <TextInput placeholder="Título" placeholderTextColor="#888888" style={styles.input} value={title} onChangeText={setTitle} />
+            <TextInput placeholder="Descrição" placeholderTextColor="#888888" style={[styles.input, { height: 70 }]} multiline value={description} onChangeText={setDescription} />
                                  
             <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
               <Text>{time ? `⏰ ${time}` : 'Escolher Horário'}</Text>
