@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  Modal, TextInput, Alert, Platform, Animated // ALTERADO: Adicionado o módulo Animated para a transição suave do calendário
+  Modal, TextInput, Alert, Platform, Animated // ALTERADO: Mantido o módulo Animated para a transição suave
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -16,7 +16,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 // Tradução do Calendário
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-  monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+  monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ao','Set','Out','Nov','Dez'],
   dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
   dayNamesShort: ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
   today: 'Hoje'
@@ -148,7 +148,7 @@ const handleSaveTask = async () => {
   if (!newTasks[selectedDate]) newTasks[selectedDate] = [];
   
   if (editingTaskId) {
-    // Ultrapassa/Atualiza a tarefa existente
+    // Atualiza a tarefa existente
     newTasks[selectedDate] = newTasks[selectedDate].map(t => 
       t.id === editingTaskId ? { ...t, title, description, time } : t
     );
@@ -237,20 +237,21 @@ const getSortedTasks = () => {
   });
 };
 
-// ADICIONADO: Cálculos de interpolação para encolher a altura e sumir com a opacidade do calendário suavemente
-const calendarHeight = scrollY.interpolate({
-  inputRange: [0, 180],
-  outputRange: [315, 0], // Vai de 315px de altura padrão até 0 de acordo com a rolagem
-  extrapolate: 'clamp',
-});
-
+// CORRIGIDO: Interpolação suave de opacidade para esmaecer o calendário gradativamente ao rolar
 const calendarOpacity = scrollY.interpolate({
-  inputRange: [0, 120],
-  outputRange: [1, 0], // Desvanece o calendário antes de sumir totalmente a altura
+  inputRange: [0, 140],
+  outputRange: [1, 0],
   extrapolate: 'clamp',
 });
 
-// ADICIONADO: Constante para obter dinamicamente a quantidade de tarefas do dia selecionado
+// CORRIGIDO: Interpolação suave de translação para criar um efeito de recolhimento sutil para cima
+const calendarTranslateY = scrollY.interpolate({
+  inputRange: [0, 140],
+  outputRange: [0, -50],
+  extrapolate: 'clamp',
+});
+
+// ADICIONADO: Constante calculada dinamicamente para obter a contagem exata de tarefas do dia atual
 const totalTasksCount = tasks[selectedDate]?.length || 0;
 
 return (
@@ -279,43 +280,46 @@ return (
       </View>
     )}
 
-{/* ALTERADO: O Calendário agora fica dentro de um container animado que encolhe suavemente ao rolar a lista */}
-    <Animated.View style={{ height: calendarHeight, opacity: calendarOpacity, overflow: 'hidden' }}>
-      <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
-    </Animated.View>
-
-{/* Título da Lista (ALTERADO: Agora inclui a contagem dinâmica de tarefas ao lado do título) */}      
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
-      <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
-    </View>
-
-{/* ADICIONADO: Barra de botões para alternar a Ordenação Inteligente de forma dinâmica */}
-    <View style={styles.filterBar}>
-      <TouchableOpacity 
-        style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
-        onPress={() => setSortBy('criacao')}
-      >
-        <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
-        onPress={() => setSortBy('alfabetica')}
-      >
-        <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
-      </TouchableOpacity>
-    </View>
-
-{/* ALTERADO: Trocado para Animated.FlatList e injetado o evento onScroll para dar o efeito dinâmico no calendário */} 
+{/* CORRIGIDO: Toda a estrutura superior foi transferida com segurança para dentro do ListHeaderComponent do FlatList abaixo */} 
     <Animated.FlatList
       data={getSortedTasks()}
       keyExtractor={(item) => item.id}
       onScroll={Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: false } // Obrigatório como false por alterar propriedade de Layout (height)
+        { useNativeDriver: true } // CORRIGIDO: Agora usa aceleração de hardware nativa evitando qualquer lag ou travamento visual
       )}
-      scrollEventThrottle={16} // Mantém o fluxo de frames da animação estável e profissional
+      scrollEventThrottle={16}
+      ListHeaderComponent={
+        <View style={{ backgroundColor: '#fff' }}>
+          {/* CORRIGIDO: O calendário agora executa um fade e subida sincronizada de forma limpa e atrativa */}
+          <Animated.View style={{ opacity: calendarOpacity, transform: [{ translateY: calendarTranslateY }] }}>
+            <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
+          </Animated.View>
+
+          {/* Título da Lista (ALTERADO: Integrado dinamicamente a contagem de tarefas junto ao título) */}      
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
+            <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
+          </View>
+
+          {/* ADICIONADO: Barra de botões para alternar a Ordenação Inteligente de forma dinâmica */}
+          <View style={styles.filterBar}>
+            <TouchableOpacity 
+              style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
+              onPress={() => setSortBy('criacao')}
+            >
+              <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
+              onPress={() => setSortBy('alfabetica')}
+            >
+              <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      }
       renderItem={({ item }) => {
         const currentStatus = item.status || 'pendente';
         const isConcluida = currentStatus === 'concluída';
@@ -411,7 +415,6 @@ const styles = StyleSheet.create({
   input: { backgroundColor: '#f5f5f5', width: '100%', padding: 15, borderRadius: 12, marginBottom: 12 },
   saveButton: { backgroundColor: '#6d59db', width: '100%', padding: 15, borderRadius: 12, alignItems: 'center' },
   buttonText: { color: '#fff', fontWeight: 'bold' },
-  // ADICIONADO: Estilos organizados para a nova barra de Ordenação Inteligente
   filterBar: { flexDirection: 'row', paddingHorizontal: 20, marginBottom: 8 },
   filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 8 },
   filterBtnActive: { backgroundColor: '#6d59db' },
