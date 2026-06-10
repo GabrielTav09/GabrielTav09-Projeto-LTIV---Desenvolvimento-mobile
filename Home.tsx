@@ -211,12 +211,6 @@ export default function HomeScreen({ navigation }: any) {
     extrapolate: 'clamp',
   });
 
-  // NOVA ANIMAÇÃO: Faz o cabeçalho de tarefas travar no topo assim que a rolagem passa de 260px (altura do calendário)
-  const stickyHeaderTranslateY = scrollY.interpolate({
-    inputRange: [-1, 0, 260, 261],
-    outputRange: [0, 0, 0, 1],
-  });
-
   const fabTranslateY = scrollY.interpolate({
     inputRange: [0, 50],
     outputRange: [0, 130],
@@ -259,35 +253,31 @@ export default function HomeScreen({ navigation }: any) {
         )}
         scrollEventThrottle={16}
         ListHeaderComponent={
-          // MODIFICADO: Adicionado zIndex para garantir que o cabeçalho renderize visualmente por cima das linhas que sobem
-          <View style={{ backgroundColor: '#fff', zIndex: 99 }}>
+          <View style={{ backgroundColor: '#fff' }}>
             <Animated.View style={{ opacity: calendarOpacity, transform: [{ translateY: calendarTranslateY }] }}>
               <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
             </Animated.View>
 
-            {/* MODIFICADO: Envolvido em um Animated.View com fundo branco e a nova animação de trava */}
-            <Animated.View style={{ backgroundColor: '#fff', transform: [{ translateY: stickyHeaderTranslateY }], zIndex: 100, paddingBottom: 4 }}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
-                <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
-              </View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
+              <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
+            </View>
 
-              <View style={styles.filterBar}>
-                <TouchableOpacity 
-                  style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
-                  onPress={() => setSortBy('criacao')}
-                >
-                  <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
-                </TouchableOpacity>
+            <View style={styles.filterBar}>
+              <TouchableOpacity 
+                style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
+                onPress={() => setSortBy('criacao')}
+              >
+                <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity 
-                  style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
-                  onPress={() => setSortBy('alfabetica')}
-                >
-                  <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
+              <TouchableOpacity 
+                style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
+                onPress={() => setSortBy('alfabetica')}
+              >
+                <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         }
         renderItem={({ item }) => {
