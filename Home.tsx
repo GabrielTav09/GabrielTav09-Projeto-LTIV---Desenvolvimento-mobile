@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  Modal, TextInput, Alert, Platform
+  Modal, TextInput, Alert, Platform, Animated // ALTERADO: Adicionado o módulo Animated para a transição suave do calendário
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -54,6 +54,9 @@ export default function HomeScreen({ navigation }: any) {
 
 // ADICIONADO: Estado para gerenciar o critério de ordenação ativo ('criacao' ou 'alfabetica')
   const [sortBy, setSortBy] = useState<'criacao' | 'alfabetica'>('criacao');
+
+// ADICIONADO: Variável reativa controladora do scroll para encolher o calendário dinamicamente
+  const scrollY = useRef(new Animated.Value(0)).current;
 
 
 // CORRIGIDO: Agora recarrega as tarefas sempre que a tela Home ganhar foco (voltar da lixeira)
@@ -145,7 +148,7 @@ const handleSaveTask = async () => {
   if (!newTasks[selectedDate]) newTasks[selectedDate] = [];
   
   if (editingTaskId) {
-    // Atualiza a tarefa existente
+    // Ultrapassa/Atualiza a tarefa existente
     newTasks[selectedDate] = newTasks[selectedDate].map(t => 
       t.id === editingTaskId ? { ...t, title, description, time } : t
     );
@@ -234,6 +237,22 @@ const getSortedTasks = () => {
   });
 };
 
+// ADICIONADO: Cálculos de interpolação para encolher a altura e sumir com a opacidade do calendário suavemente
+const calendarHeight = scrollY.interpolate({
+  inputRange: [0, 180],
+  outputRange: [315, 0], // Vai de 315px de altura padrão até 0 de acordo com a rolagem
+  extrapolate: 'clamp',
+});
+
+const calendarOpacity = scrollY.interpolate({
+  inputRange: [0, 120],
+  outputRange: [1, 0], // Desvanece o calendário antes de sumir totalmente a altura
+  extrapolate: 'clamp',
+});
+
+// ADICIONADO: Constante para obter dinamicamente a quantidade de tarefas do dia selecionado
+const totalTasksCount = tasks[selectedDate]?.length || 0;
+
 return (
   <SafeAreaView style={styles.container}>
     <View style={styles.topBar}>
@@ -260,12 +279,14 @@ return (
       </View>
     )}
 
-{/* Calendário Interativo */}
-    <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
+{/* ALTERADO: O Calendário agora fica dentro de um container animado que encolhe suavemente ao rolar a lista */}
+    <Animated.View style={{ height: calendarHeight, opacity: calendarOpacity, overflow: 'hidden' }}>
+      <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
+    </Animated.View>
 
-{/* Título da Lista (Data formatada para PT-BR) */}      
+{/* Título da Lista (ALTERADO: Agora inclui a contagem dinâmica de tarefas ao lado do título) */}      
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>Minhas Tarefas</Text>
+      <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
       <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
     </View>
 
@@ -286,10 +307,15 @@ return (
       </TouchableOpacity>
     </View>
 
-{/* ALTERADO: Propriedade data agora consome o resultado da função getSortedTasks() */} 
-    <FlatList
+{/* ALTERADO: Trocado para Animated.FlatList e injetado o evento onScroll para dar o efeito dinâmico no calendário */} 
+    <Animated.FlatList
       data={getSortedTasks()}
       keyExtractor={(item) => item.id}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: false } // Obrigatório como false por alterar propriedade de Layout (height)
+      )}
+      scrollEventThrottle={16} // Mantém o fluxo de frames da animação estável e profissional
       renderItem={({ item }) => {
         const currentStatus = item.status || 'pendente';
         const isConcluida = currentStatus === 'concluída';
