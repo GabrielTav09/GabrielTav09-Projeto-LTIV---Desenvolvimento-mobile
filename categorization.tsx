@@ -43,7 +43,7 @@ export default function CategorizationScreen({ navigation }: any) {
     if (!categoryName.trim()) return Alert.alert("Erro", "Digite o nome da categoria.");
     
     const newCategory: Categoria = {
-      id: Date.now().toString(),
+      id: Date.now().toString() + Math.random().toString(),
       name: categoryName.trim(),
       color: selectedColor
     };
@@ -117,7 +117,7 @@ export default function CategorizationScreen({ navigation }: any) {
 
       <FlatList
         data={categories}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id + '-' + index}
         contentContainerStyle={{ paddingHorizontal: 25, paddingTop: 10 }}
         renderItem={({ item }) => (
           <View style={styles.categoryCard}>

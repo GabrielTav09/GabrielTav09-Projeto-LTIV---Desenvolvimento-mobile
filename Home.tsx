@@ -135,7 +135,7 @@ export default function HomeScreen({ navigation }: any) {
       );
     } else {
       newTasks[selectedDate].push({ 
-        id: Date.now().toString(), 
+        id: Date.now().toString() + Math.random().toString(), 
         title, 
         description, 
         time, 
@@ -263,7 +263,7 @@ export default function HomeScreen({ navigation }: any) {
         // CORREÇÃO AQUI: O primeiro item do Data agora é um objeto falso que representa o nosso Cabeçalho. 
         // Logo em seguida, espalhamos as tarefas reais. Isso alinha perfeitamente os índices.
         data={[{ id: 'sticky-header-dummy', isHeader: true } as any, ...getSortedTasks()]}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id + '-' + index}
         contentContainerStyle={{ paddingBottom: 320 }}
         stickyHeaderIndices={[1]} // Agora sim! O Índice 0 é o Calendário. O Índice 1 é o nosso Cabeçalho fixo. A primeira tarefa é o índice 2.
         onScroll={Animated.event(
