@@ -9,6 +9,9 @@ import HomeScreen from './Home';
 // ADICIONADO: Importação do arquivo de código da lixeira para registro na rota
 import BinScreen from './Bin';
 
+// ADICIONADO: Importação do arquivo de código de categorização para registro na rota
+import CategorizationScreen from './categorization';
+
 // Criando a pilha de navegação
 const Stack = createStackNavigator();
 
@@ -50,6 +53,14 @@ export default function App() {
         <Stack.Screen 
           name="Bin" 
           component={BinScreen} 
+          options={{ headerShown: false }} 
+        />
+
+        {/* ADICIONADO: Tela de Categorias - Definida como 'Categorization' para o menu hambúrguer da Home redirecionar corretamente */}
+        {/* OBS: Definimos 'headerShown: false' porque a tela categorization.tsx já foi estruturada com um topo personalizado e botão nativo de voltar */}
+        <Stack.Screen 
+          name="Categorization" 
+          component={CategorizationScreen} 
           options={{ headerShown: false }} 
         />
 

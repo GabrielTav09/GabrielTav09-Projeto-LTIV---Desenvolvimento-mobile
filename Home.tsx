@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
-  Modal, TextInput, Alert, Platform, Animated 
+  Modal, TextInput, Alert, Platform, Animated, ScrollView 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -28,11 +28,14 @@ interface Tarefa {
   time: string;
   status?: 'pendente' | 'concluída';
   notificationId?: string;
+  categoryId?: string;
 }
 
 export default function HomeScreen({ navigation }: any) {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [tasks, setTasks] = useState<Record<string, Tarefa[]>>({});
+  const [categories, setCategories] = useState<{ id: string; name: string; color: string }[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const [title, setTitle] = useState('');
@@ -41,7 +44,6 @@ export default function HomeScreen({ navigation }: any) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [sortBy, setSortBy] = useState<'criacao' | 'alfabetica'>('criacao');
-  const useRefScroll = useRef(null);
   const scrollY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -61,6 +63,12 @@ export default function HomeScreen({ navigation }: any) {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setTasks(docSnap.data().tasks);
+      }
+
+      const catRef = doc(db, 'user_categories', user.uid);
+      const catSnap = await getDoc(catRef);
+      if (catSnap.exists()) {
+        setCategories(catSnap.data().categories || []);
       }
     } catch (error) {
       Alert.alert("Erro", "Falha ao carregar as tarefas da nuvem.");
@@ -122,7 +130,7 @@ export default function HomeScreen({ navigation }: any) {
     
     if (editingTaskId) {
       newTasks[selectedDate] = newTasks[newTasks[selectedDate] ? selectedDate : Object.keys(newTasks)[0]].map(t => 
-        t.id === editingTaskId ? { ...t, title, description, time } : t
+        t.id === editingTaskId ? { ...t, title, description, time, categoryId: selectedCategoryId || undefined } : t
       );
     } else {
       newTasks[selectedDate].push({ 
@@ -130,12 +138,13 @@ export default function HomeScreen({ navigation }: any) {
         title, 
         description, 
         time, 
-        status: 'pendente'
+        status: 'pendente',
+        categoryId: selectedCategoryId || undefined
       });
     }
     await saveTasks(newTasks);
     setModalVisible(false);
-    setTitle(''); setTime(''); setDescription(''); setEditingTaskId(null);
+    setTitle(''); setTime(''); setDescription(''); setEditingTaskId(null); setSelectedCategoryId(null);
   };
 
   // Exibe um alerta de confirmação antes de enviar a tarefa para a lixeira.
@@ -240,62 +249,86 @@ export default function HomeScreen({ navigation }: any) {
           >
             <Text style={styles.menuOptionText}>🗑️ Lixeira</Text>
           </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.menuOption} 
+            onPress={() => { setMenuVisible(false); navigation.navigate('Categorization'); }}
+          >
+            <Text style={styles.menuOptionText}>🏷️ Categorias</Text>
+          </TouchableOpacity>
         </View>
       )}
 
       <Animated.FlatList
-        data={getSortedTasks()}
+        // CORREÇÃO AQUI: O primeiro item do Data agora é um objeto falso que representa o nosso Cabeçalho. 
+        // Logo em seguida, espalhamos as tarefas reais. Isso alinha perfeitamente os índices.
+        data={[{ id: 'sticky-header-dummy', isHeader: true } as any, ...getSortedTasks()]}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 320 }}
+        stickyHeaderIndices={[1]} // Agora sim! O Índice 0 é o Calendário. O Índice 1 é o nosso Cabeçalho fixo. A primeira tarefa é o índice 2.
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
         scrollEventThrottle={16}
         ListHeaderComponent={
-          <View style={{ backgroundColor: '#fff' }}>
-            <Animated.View style={{ opacity: calendarOpacity, transform: [{ translateY: calendarTranslateY }] }}>
-              <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
-            </Animated.View>
-
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
-              <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
-            </View>
-
-            <View style={styles.filterBar}>
-              <TouchableOpacity 
-                style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
-                onPress={() => setSortBy('criacao')}
-              >
-                <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
-                onPress={() => setSortBy('alfabetica')}
-              >
-                <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          // O Calendário agora fica sozinho no seu devido lugar (Índice 0)
+          <Animated.View style={{ opacity: calendarOpacity, transform: [{ translateY: calendarTranslateY }], backgroundColor: '#fff' }}>
+            <Calendar onDayPress={(day: any) => setSelectedDate(day.dateString)} markedDates={getMarkedDates()} />
+          </Animated.View>
         }
         renderItem={({ item }) => {
+          // CORREÇÃO AQUI: Se for o item falso de cabeçalho, renderizamos a barra de 'Minhas Tarefas' e Filtros.
+          if (item.isHeader) {
+            return (
+              <View style={styles.stickyHeaderWrapper}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Minhas Tarefas ({totalTasksCount})</Text>
+                  <Text style={styles.sectionDate}>{selectedDate.split('-').reverse().join('/')}</Text>
+                </View>
+
+                <View style={styles.filterBar}>
+                  <TouchableOpacity 
+                    style={[styles.filterBtn, sortBy === 'criacao' && styles.filterBtnActive]} 
+                    onPress={() => setSortBy('criacao')}
+                  >
+                    <Text style={[styles.filterBtnText, sortBy === 'criacao' && styles.filterBtnTextActive]}>🕒 Criação</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity 
+                    style={[styles.filterBtn, sortBy === 'alfabetica' && styles.filterBtnActive]} 
+                    onPress={() => setSortBy('alfabetica')}
+                  >
+                    <Text style={[styles.filterBtnText, sortBy === 'alfabetica' && styles.filterBtnTextActive]}>🔤 Alfabética</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          }
+
+          // Daqui pra baixo, a renderização das Tarefas permanece EXATAMENTE igual, sem refatorar nada.
           const currentStatus = item.status || 'pendente';
           const isConcluida = currentStatus === 'concluída';
+          const itemCategory = categories.find(cat => cat.id === item.categoryId);
    
           return (
             <View style={[styles.taskCard, isConcluida && styles.taskConcluida]}>
               <TouchableOpacity style={{ flex: 1 }} onPress={() => toggleTaskStatus(item.id)}>
-                <Text style={[styles.taskTitle, isConcluida && styles.textRisca]}>
-                  {item.title}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Text style={[styles.taskTitle, isConcluida && styles.textRisca]}>
+                    {item.title}
+                  </Text>
+                  {itemCategory && (
+                    <View style={[styles.taskCategoryBadge, { backgroundColor: itemCategory.color }]}>
+                      <Text style={styles.taskCategoryBadgeText}>{itemCategory.name}</Text>
+                    </View>
+                  )}
+                </View>
                 {item.description ? <Text style={styles.taskDescription}>{item.description}</Text> : null}
                 <Text style={styles.taskInfo}>⏰ {item.time} - {currentStatus.toUpperCase()}</Text>
               </TouchableOpacity>
 
               <View style={styles.actionButtons}>
-                <TouchableOpacity onPress={() => { setEditingTaskId(item.id); setTitle(item.title); setDescription(item.description); setTime(item.time); setModalVisible(true); }}>
+                <TouchableOpacity onPress={() => { setEditingTaskId(item.id); setTitle(item.title); setDescription(item.description); setTime(item.time); setSelectedCategoryId(item.categoryId || null); setModalVisible(true); }}>
                   <Text style={styles.editText}>Editar</Text>
                 </TouchableOpacity>
                 
@@ -327,10 +360,29 @@ export default function HomeScreen({ navigation }: any) {
             
             {showPicker && <DateTimePicker value={new Date()} mode="time" is24Hour={true} onChange={onTimeChange} />}
             
+            <Text style={styles.modalSubLabel}>Vincular Categoria:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelectorRow}>
+              <TouchableOpacity 
+                style={[styles.categorySelectorBox, !selectedCategoryId && styles.categorySelectorBoxActive]}
+                onPress={() => setSelectedCategoryId(null)}
+              >
+                <Text style={[styles.categorySelectorText, !selectedCategoryId && styles.categorySelectorTextActive]}>Nenhuma</Text>
+              </TouchableOpacity>
+              {categories.map(cat => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.categorySelectorBox, selectedCategoryId === cat.id && { borderColor: cat.color, backgroundColor: cat.color }]}
+                  onPress={() => setSelectedCategoryId(cat.id)}
+                >
+                  <Text style={[styles.categorySelectorText, selectedCategoryId === cat.id && { color: '#fff' }]}>{cat.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
             <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask}>
               <Text style={styles.buttonText}>Salvar</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => {setModalVisible(false); setEditingTaskId(null);}} style={{ marginTop: 15 }}>
+            <TouchableOpacity onPress={() => {setModalVisible(false); setEditingTaskId(null); setSelectedCategoryId(null);}} style={{ marginTop: 15 }}>
               <Text>Cancelar</Text>
             </TouchableOpacity>
           </View>
@@ -342,7 +394,7 @@ export default function HomeScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#ffffff' },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 5, backgroundColor: '#ffffff', zIndex: 101 },
   topBarTitle: { fontSize: 24, fontWeight: 'bold', color: '#6d59db', flex: 1, textAlign: 'center' }, 
   logoutBtn: { backgroundColor: '#f0f0f0', padding: 8, borderRadius: 10, justifyContent: 'center' },
   logoutText: { color: '#666', fontWeight: '600' },
@@ -351,6 +403,14 @@ const styles = StyleSheet.create({
   menuDropdown: { position: 'absolute', top: 60, left: 20, backgroundColor: '#ffffff', borderRadius: 12, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, zIndex: 999, width: 150 },
   menuOption: { paddingVertical: 14, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#eee' },
   menuOptionText: { fontSize: 16, color: '#333', fontWeight: '600' },
+  stickyHeaderWrapper: { 
+    backgroundColor: '#ffffff', 
+    paddingBottom: 10, 
+    zIndex: 99, 
+    elevation: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#f0f0f0',
+  },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, marginTop: 10, marginBottom: 5 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#6d59db' },
   sectionDate: { color: '#888' },
@@ -376,5 +436,13 @@ const styles = StyleSheet.create({
   filterBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f0f0f0', marginRight: 8 },
   filterBtnActive: { backgroundColor: '#6d59db' },
   filterBtnText: { color: '#666', fontWeight: '600', fontSize: 13 },
-  filterBtnTextActive: { color: '#fff' }
+  filterBtnTextActive: { color: '#fff' },
+  taskCategoryBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 8 },
+  taskCategoryBadgeText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  modalSubLabel: { alignSelf: 'flex-start', fontSize: 14, fontWeight: 'bold', color: '#666', marginBottom: 8 },
+  categorySelectorRow: { flexDirection: 'row', width: '100%', marginBottom: 15 },
+  categorySelectorBox: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f5f5f5', marginRight: 8, borderWidth: 1, borderColor: '#eee' },
+  categorySelectorBoxActive: { borderColor: '#6d59db', backgroundColor: '#e8e5fa' },
+  categorySelectorText: { fontSize: 13, color: '#666', fontWeight: '600' },
+  categorySelectorTextActive: { color: '#6d59db' }
 });
