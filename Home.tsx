@@ -28,7 +28,7 @@ interface Tarefa {
   time: string;
   status?: 'pendente' | 'concluída';
   notificationId?: string;
-  categoryId?: string;
+  categoryId?: string | null;
 }
 
 export default function HomeScreen({ navigation }: any) {
@@ -123,6 +123,7 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   // Cria uma nova tarefa ou atualiza uma existente após validação.
+  // Cria uma nova tarefa ou atualiza uma existente após validação.
   const handleSaveTask = async () => {
     if (!title || !time) return Alert.alert("Erro", "Preencha título e horário.");
     const newTasks = { ...tasks };
@@ -130,7 +131,7 @@ export default function HomeScreen({ navigation }: any) {
     
     if (editingTaskId) {
       newTasks[selectedDate] = newTasks[newTasks[selectedDate] ? selectedDate : Object.keys(newTasks)[0]].map(t => 
-        t.id === editingTaskId ? { ...t, title, description, time, categoryId: selectedCategoryId || undefined } : t
+        t.id === editingTaskId ? { ...t, title, description, time, categoryId: selectedCategoryId || null } : t
       );
     } else {
       newTasks[selectedDate].push({ 
@@ -139,7 +140,7 @@ export default function HomeScreen({ navigation }: any) {
         description, 
         time, 
         status: 'pendente',
-        categoryId: selectedCategoryId || undefined
+        categoryId: selectedCategoryId || null
       });
     }
     await saveTasks(newTasks);
