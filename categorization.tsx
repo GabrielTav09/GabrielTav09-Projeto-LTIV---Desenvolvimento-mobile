@@ -90,11 +90,11 @@ export default function CategorizationScreen({ navigation }: any) {
 
       <View style={styles.form}>
         <TextInput 
-          placeholder="Nome da Categoria (Ex: Trabalho)" 
-          style={styles.input} 
-          value={categoryName} 
-          // CORREÇÃO: Alterado de categoryName para setCategoryName para permitir a digitação
-          onChangeText={setCategoryName} 
+        placeholder="Nome da Categoria (Ex: Trabalho)" 
+        placeholderTextColor="#888888" // <-- Adicione isso aqui também
+        style={styles.input} 
+        value={categoryName} 
+        onChangeText={setCategoryName} 
         />
 
         <Text style={styles.label}>Selecione uma Cor:</Text>
