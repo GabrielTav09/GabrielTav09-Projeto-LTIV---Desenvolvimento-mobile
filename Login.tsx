@@ -114,7 +114,7 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined} // <-- CORREÇÃO DO BUG DA TELA ESPREMIDA
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.container}
     >
       <View style={styles.loginBox}>
