@@ -123,7 +123,6 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   // Cria uma nova tarefa ou atualiza uma existente após validação.
-  // Cria uma nova tarefa ou atualiza uma existente após validação.
   const handleSaveTask = async () => {
     if (!title || !time) return Alert.alert("Erro", "Preencha título e horário.");
     const newTasks = { ...tasks };
@@ -260,7 +259,7 @@ export default function HomeScreen({ navigation }: any) {
       )}
 
       <Animated.FlatList
-        // CORREÇÃO AQUI: O primeiro item do Data agora é um objeto falso que representa o nosso Cabeçalho. 
+        // O primeiro item do Data agora é um objeto falso que representa o nosso Cabeçalho. 
         // Logo em seguida, espalhamos as tarefas reais. Isso alinha perfeitamente os índices.
         data={[{ id: 'sticky-header-dummy', isHeader: true } as any, ...getSortedTasks()]}
         keyExtractor={(item, index) => item.id + '-' + index}
@@ -278,7 +277,7 @@ export default function HomeScreen({ navigation }: any) {
           </Animated.View>
         }
         renderItem={({ item }) => {
-          // CORREÇÃO AQUI: Se for o item falso de cabeçalho, renderizamos a barra de 'Minhas Tarefas' e Filtros.
+          // Se for o item falso de cabeçalho, renderizamos a barra de 'Minhas Tarefas' e Filtros.
           if (item.isHeader) {
             return (
               <View style={styles.stickyHeaderWrapper}>
@@ -306,7 +305,6 @@ export default function HomeScreen({ navigation }: any) {
             );
           }
 
-          // Daqui pra baixo, a renderização das Tarefas permanece EXATAMENTE igual, sem refatorar nada.
           const currentStatus = item.status || 'pendente';
           const isConcluida = currentStatus === 'concluída';
           const itemCategory = categories.find(cat => cat.id === item.categoryId);
