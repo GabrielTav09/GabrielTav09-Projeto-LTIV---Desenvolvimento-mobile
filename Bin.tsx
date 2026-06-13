@@ -13,7 +13,7 @@ interface TarefaDeletada {
   title: string;
   description: string;
   time: string;
-  deletedAt: string; // ISO String contendo o momento da deleção
+  deletedAt: string;
   originalDate: string;
 }
 
@@ -57,13 +57,13 @@ export default function BinScreen({ navigation }: any) {
     }
   };
 
-  // ADICIONADO: Função para recuperar a tarefa, retornando ela para a Home e limpando do banco da lixeira
+  // Função para recuperar a tarefa, retornando ela para a Home e limpando do banco da lixeira
   const recoverTask = async (task: TarefaDeletada) => {
     try {
       const user = auth.currentUser;
       if (!user) return;
 
-      // 1. Devolve a tarefa para a lista ativa da Home (user_tasks) na sua data original
+      // Devolve a tarefa para a lista ativa da Home (user_tasks) na sua data original
       const tasksRef = doc(db, 'user_tasks', user.uid);
       const tasksSnap = await getDoc(tasksRef);
       let activeTasks: Record<string, any> = {};
@@ -88,7 +88,7 @@ export default function BinScreen({ navigation }: any) {
       activeTasks[task.originalDate].push(tarefaRestaurada);
       await setDoc(tasksRef, { tasks: activeTasks });
 
-      // 2. Remove este item da lista de lixeira (user_trash)
+      // Remove este item da lista de lixeira (user_trash)
       const trashRef = doc(db, 'user_trash', user.uid);
       const updatedTrash = deletedTasks.filter(t => t.id !== task.id);
 
@@ -117,7 +117,7 @@ export default function BinScreen({ navigation }: any) {
     }
   };
 
-  // ALTERADO: Mensagem atualizada informando que a ação é irreversível e perderá o item permanentemente
+  // Mensagem atualizada informando que a ação é irreversível e perderá o item permanentemente
   const confirmPermanentDelete = (id: string) => {
     Alert.alert(
       "Exclusão Definitiva",
@@ -143,7 +143,6 @@ export default function BinScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Barra superior combinando perfeitamente com o layout original */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Text style={styles.backText}>← Voltar</Text>
