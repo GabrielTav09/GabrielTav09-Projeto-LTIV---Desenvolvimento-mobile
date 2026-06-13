@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
   FlatList, Alert 
 } from 'react-native';
-// CORREÇÃO: Importando o SafeAreaView correto que respeita a barra de status no Android e iOS
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from './firebaseConfig';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -21,6 +20,7 @@ export default function CategorizationScreen({ navigation }: any) {
   const [categoryName, setCategoryName] = useState('');
   const [selectedColor, setSelectedColor] = useState(PALETA_CORES[0]);
 
+  // Carrega as categorias salvas no Firestore para o usuário autenticado.
   useEffect(() => {
     loadCategories();
   }, []);
@@ -39,6 +39,8 @@ export default function CategorizationScreen({ navigation }: any) {
     }
   };
 
+
+  // Cria uma nova categoria e sincroniza com o Firestore após validação.
   const handleSaveCategory = async () => {
     if (!categoryName.trim()) return Alert.alert("Erro", "Digite o nome da categoria.");
     
@@ -63,6 +65,8 @@ export default function CategorizationScreen({ navigation }: any) {
     }
   };
 
+
+  // Remove a categoria da lista ativa e atualiza o estado no Firestore.
   const handleDeleteCategory = async (id: string) => {
     const updatedCategories = categories.filter(cat => cat.id !== id);
     setCategories(updatedCategories);
